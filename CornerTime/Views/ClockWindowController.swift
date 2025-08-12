@@ -231,9 +231,51 @@ class ClockWindowController: NSObject {
             position = config.customPoint ?? CGPoint(x: screenFrame.midX, y: screenFrame.midY)
         }
         
-        window.setFrameOrigin(position)
+        // 确保位置在屏幕可见范围内
+        let safePosition = ensurePositionInBounds(position, windowSize: windowSize, screenFrame: screenFrame)
         
-        print("📍 窗口位置更新: \(position), 配置: \(config.position.displayName)")
+        // 临时禁用窗口委托，防止programmatic移动触发windowDidMove
+        let originalDelegate = window.delegate
+        window.delegate = nil
+        
+        window.setFrameOrigin(safePosition)
+        
+        // 恢复窗口委托
+        window.delegate = originalDelegate
+        
+        print("📍 窗口位置更新: \(safePosition), 配置: \(config.position.displayName)")
+    }
+    
+    /// 确保窗口位置在屏幕边界内
+    private func ensurePositionInBounds(_ position: CGPoint, windowSize: NSSize, screenFrame: NSRect) -> CGPoint {
+        var safePosition = position
+        
+        // 确保窗口不会超出屏幕右边界
+        if safePosition.x + windowSize.width > screenFrame.maxX {
+            safePosition.x = screenFrame.maxX - windowSize.width
+        }
+        
+        // 确保窗口不会超出屏幕左边界
+        if safePosition.x < screenFrame.minX {
+            safePosition.x = screenFrame.minX
+        }
+        
+        // 确保窗口不会超出屏幕上边界
+        if safePosition.y + windowSize.height > screenFrame.maxY {
+            safePosition.y = screenFrame.maxY - windowSize.height
+        }
+        
+        // 确保窗口不会超出屏幕下边界
+        if safePosition.y < screenFrame.minY {
+            safePosition.y = screenFrame.minY
+        }
+        
+        // 如果位置被修正了，输出调试信息
+        if safePosition != position {
+            print("⚠️ 窗口位置已修正: \(position) → \(safePosition)")
+        }
+        
+        return safePosition
     }
     
     @MainActor
@@ -251,8 +293,15 @@ class ClockWindowController: NSObject {
         // 只有在大小发生显著变化时才更新
         let currentSize = window.frame.size
         if abs(currentSize.width - newSize.width) > 5 || abs(currentSize.height - newSize.height) > 5 {
+            // 临时禁用窗口委托，防止大小调整触发windowDidMove
+            let originalDelegate = window.delegate
+            window.delegate = nil
+            
             let currentOrigin = window.frame.origin
             window.setFrame(NSRect(origin: currentOrigin, size: newSize), display: true)
+            
+            // 恢复窗口委托
+            window.delegate = originalDelegate
             
             // 重新调整位置以保持对齐
             updateWindowPosition()
