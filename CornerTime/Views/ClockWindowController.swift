@@ -116,6 +116,9 @@ class ClockWindowController: NSObject {
             spaceManager: viewModel.spaceManager
         )
         
+        // 重要：将窗口连接到WindowManager的DragSnapManager
+        viewModel.windowManager.connectWindow(window)
+        
         // 设置内容视图
         window.contentView = contentView
         print("✅ 内容视图设置完成")
@@ -127,6 +130,9 @@ class ClockWindowController: NSObject {
         
         // 更新窗口位置
         updateWindowPosition()
+        
+        // 更新窗口属性（包括鼠标事件处理）
+        updateWindowProperties()
         
         // 设置初始可见性
         updateWindowVisibility()
@@ -183,7 +189,11 @@ class ClockWindowController: NSObject {
         let config = viewModel.windowManager.windowConfig
         
         // 更新点击穿透（但拖拽时需要接收鼠标事件）
-        window.ignoresMouseEvents = config.allowsClickThrough && !config.enableDragging
+        // 只有在启用点击穿透且禁用拖拽时才忽略鼠标事件
+        let shouldIgnoreMouseEvents = config.allowsClickThrough && !config.enableDragging
+        window.ignoresMouseEvents = shouldIgnoreMouseEvents
+        
+        print("🖱️ 鼠标事件处理: clickThrough=\(config.allowsClickThrough), dragging=\(config.enableDragging), ignoreEvents=\(shouldIgnoreMouseEvents)")
         
         // 更新窗口是否可移动
         window.isMovable = !config.isLocked
@@ -310,6 +320,7 @@ class ClockWindowController: NSObject {
         print("🫱 已为视图添加拖拽手势识别器")
         print("🫱 窗口属性: ignoresMouseEvents=\(window.ignoresMouseEvents), isMovable=\(window.isMovable)")
         print("🫱 拖拽配置: enableDragging=\(viewModel.windowManager.windowConfig.enableDragging), isLocked=\(viewModel.windowManager.windowConfig.isLocked)")
+        print("🫱 视图属性: wantsLayer=\(view.wantsLayer)")
     }
     
     /// 处理拖拽手势

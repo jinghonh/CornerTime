@@ -432,6 +432,13 @@ class WindowManager: ObservableObject {
         dragSnapManager = DragSnapManager(config: windowConfig)
     }
     
+    /// 连接窗口到拖拽管理器（供外部创建的窗口使用）
+    func connectWindow(_ window: NSWindow) {
+        clockWindow = window
+        dragSnapManager?.setTargetWindow(window)
+        print("🔗 窗口已连接到拖拽管理器")
+    }
+    
     /// 更新窗口配置（新版本支持拖拽和位置记忆）
     func updateWindowConfigWithDragSupport(_ newConfig: WindowConfig) {
         let oldConfig = windowConfig
