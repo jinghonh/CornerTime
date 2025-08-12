@@ -81,15 +81,21 @@ class ClockViewModel: ObservableObject {
     
     /// 更新窗口位置
     func updateWindowPosition(_ position: WindowPosition) {
-        var config = preferencesManager.windowConfig
-        config = WindowConfig(
+        let config = preferencesManager.windowConfig
+        let newConfig = WindowConfig(
             position: position,
             customPoint: config.customPoint,
             margin: config.margin,
             isLocked: config.isLocked,
-            allowsClickThrough: config.allowsClickThrough
+            allowsClickThrough: config.allowsClickThrough,
+            enableDragging: config.enableDragging,
+            enableSnapping: config.enableSnapping,
+            snapDistance: config.snapDistance,
+            rememberPosition: config.rememberPosition,
+            respectSafeArea: config.respectSafeArea,
+            lastSavedPosition: config.lastSavedPosition
         )
-        preferencesManager.windowConfig = config
+        preferencesManager.windowConfig = newConfig
     }
     
     /// 显示设置窗口

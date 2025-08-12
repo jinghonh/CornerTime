@@ -423,7 +423,13 @@ extension ClockWindowController: NSWindowDelegate {
             customPoint: newPosition,
             margin: currentConfig.margin,
             isLocked: currentConfig.isLocked,
-            allowsClickThrough: currentConfig.allowsClickThrough
+            allowsClickThrough: currentConfig.allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: currentConfig.lastSavedPosition
         )
         
         viewModel.preferencesManager.windowConfig = newConfig
