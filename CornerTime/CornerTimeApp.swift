@@ -14,14 +14,14 @@ struct CornerTimeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        // 主时钟窗口 - 设置为不可见，因为我们使用自定义窗口
+        // 主窗口 - 保持最小化但可见，确保程序坞图标显示
         WindowGroup {
             ContentView()
-                .frame(width: 0, height: 0)
-                .hidden()
+                .frame(width: 200, height: 100)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .defaultPosition(.topTrailing)
     }
     
     init() {
@@ -38,10 +38,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("🚀 CornerTime 应用启动中...")
         
-        // 临时设置应用在 Dock 中显示以便调试
-        // 正式版本应该使用 .accessory
+        // 设置应用在 Dock 中显示
+        // 注意：.regular 会显示程序坞图标，.accessory 不会显示
         NSApp.setActivationPolicy(.regular)
-        print("✅ 应用策略设置为 regular 模式（调试版本）")
+        print("✅ 应用策略设置为 regular 模式，将在程序坞显示图标")
+        
+        // 激活应用程序以确保图标显示
+        NSApp.activate(ignoringOtherApps: true)
         
         // 初始化时钟视图模型
         clockViewModel = ClockViewModel()
@@ -52,8 +55,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setupClockWindow()
         }
         
-        // 隐藏主窗口
-        hideMainWindow()
+        // 最小化主窗口但保持可见性（确保程序坞图标显示）
+        minimizeMainWindow()
         
         print("🎯 CornerTime 启动完成！时钟应该显示在屏幕右上角")
         print("💡 提示：使用 Cmd+Ctrl+Space 切换显示/隐藏")
@@ -84,11 +87,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         clockWindowController?.showWindow()
     }
     
-    private func hideMainWindow() {
-        // 隐藏默认的主窗口
+    private func minimizeMainWindow() {
+        // 最小化主窗口但保持应用程序在程序坞的可见性
         for window in NSApp.windows {
             if window.title.isEmpty || window.title == "CornerTime" {
-                window.orderOut(nil)
+                window.miniaturize(nil)
+                print("🏠 主窗口已最小化")
             }
         }
     }
