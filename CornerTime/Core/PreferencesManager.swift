@@ -165,18 +165,91 @@ struct BehaviorConfig: Codable {
     }
 }
 
+/// 多显示器模式
+enum MultiDisplayMode: String, Codable, CaseIterable {
+    case singleDisplay = "single"           // 仅在单个显示器显示
+    case mainDisplayOnly = "mainOnly"       // 仅在主显示器显示
+    case allDisplays = "all"                // 在所有显示器显示
+    case selectedDisplays = "selected"     // 在选定的显示器显示
+    case followCursor = "followCursor"      // 跟随鼠标光标所在显示器
+    
+    var displayName: String {
+        switch self {
+        case .singleDisplay: return "单显示器"
+        case .mainDisplayOnly: return "仅主显示器"
+        case .allDisplays: return "所有显示器"
+        case .selectedDisplays: return "选定显示器"
+        case .followCursor: return "跟随光标"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .singleDisplay: return "只在指定的一个显示器上显示时钟"
+        case .mainDisplayOnly: return "只在主显示器上显示时钟"
+        case .allDisplays: return "在所有连接的显示器上都显示时钟"
+        case .selectedDisplays: return "在用户选择的显示器上显示时钟"
+        case .followCursor: return "时钟跟随鼠标光标移动到相应显示器"
+        }
+    }
+}
+
 /// 显示器配置
 struct DisplayConfig: Codable {
     let targetDisplayUUID: String?
     let showOnAllDisplays: Bool
     let followMainDisplay: Bool
     
+    // 新增多显示器配置
+    let multiDisplayMode: MultiDisplayMode
+    let enabledDisplayUUIDs: Set<String>
+    let perDisplayConfigurations: [String: PerDisplayConfig]
+    let syncConfigurationAcrossDisplays: Bool
+    let autoDetectNewDisplays: Bool
+    let rememberDisplayPreferences: Bool
+    
     init(targetDisplayUUID: String? = nil,
          showOnAllDisplays: Bool = false,
-         followMainDisplay: Bool = true) {
+         followMainDisplay: Bool = true,
+         multiDisplayMode: MultiDisplayMode = .mainDisplayOnly,
+         enabledDisplayUUIDs: Set<String> = Set(),
+         perDisplayConfigurations: [String: PerDisplayConfig] = [:],
+         syncConfigurationAcrossDisplays: Bool = true,
+         autoDetectNewDisplays: Bool = true,
+         rememberDisplayPreferences: Bool = true) {
         self.targetDisplayUUID = targetDisplayUUID
         self.showOnAllDisplays = showOnAllDisplays
         self.followMainDisplay = followMainDisplay
+        self.multiDisplayMode = multiDisplayMode
+        self.enabledDisplayUUIDs = enabledDisplayUUIDs
+        self.perDisplayConfigurations = perDisplayConfigurations
+        self.syncConfigurationAcrossDisplays = syncConfigurationAcrossDisplays
+        self.autoDetectNewDisplays = autoDetectNewDisplays
+        self.rememberDisplayPreferences = rememberDisplayPreferences
+    }
+}
+
+/// 单个显示器的专属配置
+struct PerDisplayConfig: Codable {
+    let displayUUID: String
+    let isEnabled: Bool
+    let windowPosition: WindowPosition
+    let customPoint: CGPoint?
+    let appearanceOverrides: AppearanceConfig?
+    let timeFormatOverrides: TimeFormat?
+    
+    init(displayUUID: String,
+         isEnabled: Bool = true,
+         windowPosition: WindowPosition = .topRight,
+         customPoint: CGPoint? = nil,
+         appearanceOverrides: AppearanceConfig? = nil,
+         timeFormatOverrides: TimeFormat? = nil) {
+        self.displayUUID = displayUUID
+        self.isEnabled = isEnabled
+        self.windowPosition = windowPosition
+        self.customPoint = customPoint
+        self.appearanceOverrides = appearanceOverrides
+        self.timeFormatOverrides = timeFormatOverrides
     }
 }
 

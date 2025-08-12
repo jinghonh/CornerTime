@@ -44,11 +44,17 @@ class DisplayManager: ObservableObject {
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
+    private var isInitialized = false
+    private var updateTask: Task<Void, Never>?
     
     // MARK: - Initialization
     init() {
         setupDisplayMonitoring()
         updateDisplays()
+    }
+    
+    deinit {
+        updateTask?.cancel()
     }
     
     // MARK: - Public Methods
@@ -84,31 +90,53 @@ class DisplayManager: ObservableObject {
     // MARK: - Private Methods
     
     private func setupDisplayMonitoring() {
-        // 监听显示器配置变化
+        // 监听显示器配置变化（带防抖机制）
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.updateDisplays()
+            self?.scheduleDisplayUpdate()
         }
     }
     
-    private func updateDisplays() {
+    private func scheduleDisplayUpdate() {
+        // 取消之前的更新任务
+        updateTask?.cancel()
+        
+        // 延迟100ms执行更新，避免频繁触发
+        updateTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            
+            if !Task.isCancelled {
+                updateDisplays()
+            }
+        }
+    }
+    
+    func updateDisplays() {
         let newDisplays = NSScreen.screens.map { DisplayInfo(screen: $0) }
         
-        // 检查是否有变化
-        let displayUUIDs = Set(displays.map { $0.uuid })
-        let newDisplayUUIDs = Set(newDisplays.map { $0.uuid })
-        
-        if displayUUIDs != newDisplayUUIDs {
-            print("显示器配置发生变化")
-            print("原显示器: \(displayUUIDs)")
-            print("新显示器: \(newDisplayUUIDs)")
+        // 检查是否有变化（仅在初始化后进行比较）
+        if isInitialized {
+            let displayUUIDs = Set(displays.map { $0.uuid })
+            let newDisplayUUIDs = Set(newDisplays.map { $0.uuid })
+            
+            if displayUUIDs != newDisplayUUIDs {
+                print("显示器配置发生变化")
+                print("原显示器: \(Array(displayUUIDs).sorted())")
+                print("新显示器: \(Array(newDisplayUUIDs).sorted())")
+            }
         }
         
         displays = newDisplays
         mainDisplay = displays.first { $0.isMain }
+        
+        // 标记为已初始化
+        if !isInitialized {
+            isInitialized = true
+            print("🖥️ 显示器管理器初始化完成，检测到 \(displays.count) 个显示器")
+        }
         
         // 如果当前显示器不再可用，切换到主显示器
         if let current = currentDisplay,

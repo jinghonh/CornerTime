@@ -27,6 +27,7 @@ class ClockViewModel: ObservableObject {
     let hotKeyManager: HotKeyManager
     let appLifecycle: AppLifecycle
     let spaceManager: SpaceManager
+    private(set) var multiDisplayManager: MultiDisplayManager?
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
@@ -42,6 +43,12 @@ class ClockViewModel: ObservableObject {
         self.appLifecycle = AppLifecycle()
         self.hotKeyManager = HotKeyManager()
         self.spaceManager = SpaceManager()
+        
+        // 初始化多显示器管理器
+        self.multiDisplayManager = MultiDisplayManager(
+            displayManager: displayManager, 
+            preferencesManager: preferencesManager
+        )
         
         setupBindings()
         setupHotKeys()
@@ -516,6 +523,49 @@ class ClockViewModel: ObservableObject {
         }
         
         return parts.joined(separator: " • ")
+    }
+    
+    // MARK: - Multi-Display Support
+    
+    /// 启用多显示器模式
+    func enableMultiDisplay(mode: MultiDisplayMode) {
+        multiDisplayManager?.enableMultiDisplay(mode: mode)
+        print("🖥️ 启用多显示器模式: \(mode.displayName)")
+    }
+    
+    /// 禁用多显示器模式
+    func disableMultiDisplay() {
+        multiDisplayManager?.disableMultiDisplay()
+        print("🖥️ 禁用多显示器模式")
+    }
+    
+    /// 切换指定显示器的启用状态
+    func toggleDisplayEnabled(_ displayUUID: String) {
+        let currentConfig = preferencesManager.displayConfig
+        let isEnabled = currentConfig.enabledDisplayUUIDs.contains(displayUUID)
+        
+        multiDisplayManager?.setDisplayEnabled(displayUUID, enabled: !isEnabled)
+        
+        let displayName = displayManager.getDisplay(by: displayUUID)?.name ?? "未知显示器"
+        print("🖥️ 显示器 \(displayName) 已\(!isEnabled ? "启用" : "禁用")")
+    }
+    
+    /// 获取多显示器统计信息
+    func getMultiDisplayStatus() -> String {
+        guard let multiDisplayManager = multiDisplayManager else {
+            return "多显示器管理器未初始化"
+        }
+        
+        let statistics = multiDisplayManager.getDisplayStatistics()
+        return """
+        \(statistics.currentMode.displayName) | \(statistics.activeWindows)/\(statistics.totalDisplays) 活动
+        """
+    }
+    
+    /// 同步配置到所有显示器
+    func syncConfigurationToAllDisplays() {
+        multiDisplayManager?.syncConfigurationToAllDisplays()
+        print("🔄 已同步配置到所有显示器")
     }
     
     private func updateWindowConfig() {

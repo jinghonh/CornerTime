@@ -12,7 +12,7 @@ import Combine
 /// 时钟窗口控制器，管理浮层时钟窗口
 class ClockWindowController: NSObject {
     // MARK: - Properties
-    private var clockWindow: NSWindow?
+    private(set) var clockWindow: NSWindow?
     private let viewModel: ClockViewModel
     private var hostingView: NSHostingView<ClockView>?
     private var cancellables = Set<AnyCancellable>()
