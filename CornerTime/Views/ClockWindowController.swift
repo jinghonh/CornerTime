@@ -105,6 +105,9 @@ class ClockWindowController: NSObject {
         window.acceptsMouseMovedEvents = true
         window.delegate = self
         
+        // 确保窗口能接收鼠标事件
+        window.isMovableByWindowBackground = false // 禁用系统默认拖拽
+        
         // 动态设置窗口层级和行为（基于当前配置和状态）
         let behaviorConfig = viewModel.preferencesManager.behaviorConfig
         viewModel.windowManager.updateWindowLevelAndBehavior(
@@ -290,30 +293,35 @@ class ClockWindowController: NSObject {
     // MARK: - Drag Support
     
     /// 设置拖拽事件处理
+    @MainActor
     private func setupDragHandling(for view: NSView) {
+        // 直接在窗口上启用拖拽，而不是依赖手势识别器
+        guard let window = clockWindow else { return }
+        
+        // 简单直接的方法：让整个内容视图都能响应拖拽
+        view.wantsLayer = true
+        
         // 创建拖拽识别手势
         let dragGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
-        
-        // 配置手势识别器
         dragGesture.buttonMask = 0x1 // 只响应鼠标左键
         
         view.addGestureRecognizer(dragGesture)
-        print("🫱 已为视图添加拖拽手势识别器: \(view.className)")
+        
+        print("🫱 已为视图添加拖拽手势识别器")
+        print("🫱 窗口属性: ignoresMouseEvents=\(window.ignoresMouseEvents), isMovable=\(window.isMovable)")
+        print("🫱 拖拽配置: enableDragging=\(viewModel.windowManager.windowConfig.enableDragging), isLocked=\(viewModel.windowManager.windowConfig.isLocked)")
     }
     
     /// 处理拖拽手势
     @MainActor
     @objc private func handlePanGesture(_ gesture: NSPanGestureRecognizer) {
-        guard let window = clockWindow else { 
-            print("❌ 拖拽手势：窗口不存在")
-            return 
-        }
+        guard let window = clockWindow else { return }
         
         let config = viewModel.windowManager.windowConfig
         
         // 检查是否允许拖拽
         guard config.enableDragging && !config.isLocked else { 
-            print("❌ 拖拽手势：拖拽被禁用或窗口被锁定 (enableDragging: \(config.enableDragging), isLocked: \(config.isLocked))")
+            print("❌ 拖拽被禁用或窗口被锁定")
             return 
         }
         
