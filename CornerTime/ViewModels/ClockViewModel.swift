@@ -36,11 +36,11 @@ class ClockViewModel: ObservableObject {
     init() {
         // 初始化所有管理器
         self.clockCore = ClockCore()
-        self.windowManager = WindowManager()
         self.preferencesManager = PreferencesManager()
+        self.windowManager = WindowManager()
         self.displayManager = DisplayManager()
-        self.hotKeyManager = HotKeyManager()
         self.appLifecycle = AppLifecycle()
+        self.hotKeyManager = HotKeyManager()
         self.spaceManager = SpaceManager()
         
         setupBindings()
