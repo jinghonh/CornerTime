@@ -12,23 +12,35 @@ struct ClockView: View {
     @ObservedObject var viewModel: ClockViewModel
     
     var body: some View {
-        HStack(spacing: 0) {
-            Text(viewModel.currentTime)
-                .font(clockFont)
-                .foregroundColor(clockColor)
-                .opacity(clockOpacity)
-                .padding(clockPadding)
-        }
-        .background(clockBackground)
-        .cornerRadius(clockCornerRadius)
-        .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
-        .onTapGesture {
-            if !viewModel.allowsClickThrough {
-                handleClockTap()
+        ZStack(alignment: .topTrailing) {
+            // 主时钟显示
+            HStack(spacing: 0) {
+                Text(viewModel.currentTime)
+                    .font(clockFont)
+                    .foregroundColor(clockColor)
+                    .opacity(clockOpacity)
+                    .padding(clockPadding)
             }
-        }
-        .contextMenu {
-            clockContextMenu
+            .background(clockBackground)
+            .cornerRadius(clockCornerRadius)
+            .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+            .onTapGesture {
+                if !viewModel.allowsClickThrough {
+                    handleClockTap()
+                }
+            }
+            .contextMenu {
+                clockContextMenu
+            }
+            
+            // 锁定状态指示器
+            if viewModel.isLocked || viewModel.allowsClickThrough {
+                LockIndicator(
+                    isLocked: viewModel.isLocked,
+                    allowsClickThrough: viewModel.allowsClickThrough
+                )
+                .offset(x: 5, y: -5)
+            }
         }
     }
     
@@ -80,12 +92,12 @@ struct ClockView: View {
             
             Divider()
             
-            Button(viewModel.isLocked ? "解锁位置" : "锁定位置") {
-                viewModel.toggleLock()
+            Button(viewModel.isLocked ? "🔓 解锁位置" : "🔒 锁定位置") {
+                viewModel.togglePositionLock()
             }
             .keyboardShortcut("l", modifiers: [.command, .control])
             
-            Button(viewModel.allowsClickThrough ? "禁用点击穿透" : "启用点击穿透") {
+            Button(viewModel.allowsClickThrough ? "🚫 禁用点击穿透" : "👆 启用点击穿透") {
                 viewModel.toggleClickThrough()
             }
             .keyboardShortcut("t", modifiers: [.command, .control])
@@ -97,6 +109,30 @@ struct ClockView: View {
                     Button(position.displayName) {
                         viewModel.updateWindowPosition(position)
                     }
+                }
+                Divider()
+                Button("重置位置") { viewModel.resetToDefaultPosition() }
+            }
+            
+            Menu("窗口设置") {
+                Button(viewModel.windowManager.windowConfig.enableDragging ? "禁用拖拽" : "启用拖拽") {
+                    viewModel.updateDragSettings(
+                        enableDragging: !viewModel.windowManager.windowConfig.enableDragging,
+                        enableSnapping: viewModel.windowManager.windowConfig.enableSnapping,
+                        snapDistance: viewModel.windowManager.windowConfig.snapDistance
+                    )
+                }
+                
+                Button(viewModel.windowManager.windowConfig.enableSnapping ? "禁用磁性吸附" : "启用磁性吸附") {
+                    viewModel.updateDragSettings(
+                        enableDragging: viewModel.windowManager.windowConfig.enableDragging,
+                        enableSnapping: !viewModel.windowManager.windowConfig.enableSnapping,
+                        snapDistance: viewModel.windowManager.windowConfig.snapDistance
+                    )
+                }
+                
+                Button(viewModel.windowManager.windowConfig.rememberPosition ? "禁用位置记忆" : "启用位置记忆") {
+                    viewModel.updatePositionMemory(enabled: !viewModel.windowManager.windowConfig.rememberPosition)
                 }
             }
             
@@ -147,6 +183,12 @@ struct ClockView: View {
                     viewModel.updateTimeFormat(format)
                 }
             }
+            
+            Divider()
+            
+            // 状态显示
+            Text(viewModel.getLockStatusDescription())
+                .foregroundColor(.secondary)
             
             Divider()
             

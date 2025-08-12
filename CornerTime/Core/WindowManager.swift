@@ -105,12 +105,7 @@ class WindowManager: ObservableObject {
         window.isOpaque = false
         window.hasShadow = false
         window.acceptsMouseMovedEvents = true
-        // 初始化时也需要正确设置鼠标事件接收
-        if windowConfig.enableDragging {
-            window.ignoresMouseEvents = false
-        } else {
-            window.ignoresMouseEvents = windowConfig.allowsClickThrough
-        }
+        window.ignoresMouseEvents = windowConfig.allowsClickThrough && !windowConfig.enableDragging
         
         // 动态设置窗口层级和行为
         updateWindowLevelAndBehavior(window: window, behaviorConfig: behaviorConfig, spaceManager: spaceManager)
@@ -301,14 +296,8 @@ class WindowManager: ObservableObject {
     private func updateWindowProperties() {
         guard let window = clockWindow else { return }
         
-        // 更新点击穿透设置（拖拽启用时必须接收鼠标事件）
-        if windowConfig.enableDragging {
-            // 启用拖拽时，窗口必须接收鼠标事件
-            window.ignoresMouseEvents = false
-        } else {
-            // 禁用拖拽时，根据点击穿透设置决定是否接收事件
-            window.ignoresMouseEvents = windowConfig.allowsClickThrough
-        }
+        // 更新点击穿透设置（但拖拽时需要接收鼠标事件）
+        window.ignoresMouseEvents = windowConfig.allowsClickThrough && !windowConfig.enableDragging
         
         // 更新窗口是否可移动
         window.isMovable = !windowConfig.isLocked
@@ -363,6 +352,12 @@ class WindowManager: ObservableObject {
     
     /// 处理窗口拖拽事件
     func handleWindowDrag(event: DragEvent) {
+        // 检查位置是否被锁定
+        guard !windowConfig.isLocked else {
+            print("🔒 窗口位置已锁定，拒绝拖拽操作")
+            return
+        }
+        
         guard let dragManager = dragSnapManager else { return }
         
         switch event {
@@ -376,6 +371,60 @@ class WindowManager: ObservableObject {
                 saveCurrentPosition()
             }
         }
+    }
+    
+    /// 切换位置锁定状态
+    func togglePositionLock() {
+        let currentConfig = windowConfig
+        let newConfig = WindowConfig(
+            position: currentConfig.position,
+            customPoint: currentConfig.customPoint,
+            margin: currentConfig.margin,
+            isLocked: !currentConfig.isLocked,
+            allowsClickThrough: currentConfig.allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: currentConfig.lastSavedPosition
+        )
+        
+        windowConfig = newConfig
+        print("🔒 位置锁定状态: \(newConfig.isLocked ? "已锁定" : "已解锁")")
+    }
+    
+    /// 切换点击穿透状态
+    func toggleClickThrough() {
+        let currentConfig = windowConfig
+        let newConfig = WindowConfig(
+            position: currentConfig.position,
+            customPoint: currentConfig.customPoint,
+            margin: currentConfig.margin,
+            isLocked: currentConfig.isLocked,
+            allowsClickThrough: !currentConfig.allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: currentConfig.lastSavedPosition
+        )
+        
+        windowConfig = newConfig
+        updateWindowClickThrough()
+        print("👆 点击穿透状态: \(newConfig.allowsClickThrough ? "已启用" : "已禁用")")
+    }
+    
+    /// 更新窗口点击穿透设置
+    private func updateWindowClickThrough() {
+        guard let window = clockWindow else { return }
+        
+        // 点击穿透与拖拽功能的兼容性处理
+        let shouldIgnoreMouse = windowConfig.allowsClickThrough && !windowConfig.enableDragging
+        window.ignoresMouseEvents = shouldIgnoreMouse
+        
+        print("🖱️ 窗口鼠标事件: \(shouldIgnoreMouse ? "忽略" : "接收")")
     }
     
     /// 设置拖拽管理器

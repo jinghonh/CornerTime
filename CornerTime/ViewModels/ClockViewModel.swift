@@ -68,11 +68,7 @@ class ClockViewModel: ObservableObject {
         updateWindowConfig()
     }
     
-    /// 切换点击穿透
-    func toggleClickThrough() {
-        allowsClickThrough.toggle()
-        updateWindowConfig()
-    }
+
     
     /// 更新时间格式
     func updateTimeFormat(_ format: TimeFormat) {
@@ -339,6 +335,59 @@ class ClockViewModel: ObservableObject {
         
         preferencesManager.updateWindowConfig(newConfig)
         windowManager.updateWindowConfigWithDragSupport(newConfig)
+    }
+    
+    // MARK: - Click Through and Lock Support
+    
+    /// 切换位置锁定状态
+    func togglePositionLock() {
+        windowManager.togglePositionLock()
+        
+        // 更新本地状态
+        let newConfig = windowManager.windowConfig
+        preferencesManager.updateWindowConfig(newConfig)
+        
+        // 更新UI状态
+        isLocked = newConfig.isLocked
+    }
+    
+    /// 切换点击穿透状态
+    func toggleClickThrough() {
+        windowManager.toggleClickThrough()
+        
+        // 更新本地状态
+        let newConfig = windowManager.windowConfig
+        preferencesManager.updateWindowConfig(newConfig)
+        
+        // 更新UI状态
+        allowsClickThrough = newConfig.allowsClickThrough
+    }
+    
+    /// 设置位置锁定状态
+    func setPositionLocked(_ locked: Bool) {
+        if isLocked != locked {
+            togglePositionLock()
+        }
+    }
+    
+    /// 设置点击穿透状态
+    func setClickThrough(_ enabled: Bool) {
+        if allowsClickThrough != enabled {
+            toggleClickThrough()
+        }
+    }
+    
+    /// 获取当前锁定状态描述
+    func getLockStatusDescription() -> String {
+        if isLocked && allowsClickThrough {
+            return "🔒👆 位置锁定 + 点击穿透"
+        } else if isLocked {
+            return "🔒 位置锁定"
+        } else if allowsClickThrough {
+            return "👆 点击穿透"
+        } else {
+            return "🔓 可交互"
+        }
     }
     
     private func updateWindowConfig() {
