@@ -105,7 +105,12 @@ class WindowManager: ObservableObject {
         window.isOpaque = false
         window.hasShadow = false
         window.acceptsMouseMovedEvents = true
-        window.ignoresMouseEvents = windowConfig.allowsClickThrough && !windowConfig.enableDragging
+        // 初始化时也需要正确设置鼠标事件接收
+        if windowConfig.enableDragging {
+            window.ignoresMouseEvents = false
+        } else {
+            window.ignoresMouseEvents = windowConfig.allowsClickThrough
+        }
         
         // 动态设置窗口层级和行为
         updateWindowLevelAndBehavior(window: window, behaviorConfig: behaviorConfig, spaceManager: spaceManager)
@@ -296,8 +301,14 @@ class WindowManager: ObservableObject {
     private func updateWindowProperties() {
         guard let window = clockWindow else { return }
         
-        // 更新点击穿透设置（但拖拽时需要接收鼠标事件）
-        window.ignoresMouseEvents = windowConfig.allowsClickThrough && !windowConfig.enableDragging
+        // 更新点击穿透设置（拖拽启用时必须接收鼠标事件）
+        if windowConfig.enableDragging {
+            // 启用拖拽时，窗口必须接收鼠标事件
+            window.ignoresMouseEvents = false
+        } else {
+            // 禁用拖拽时，根据点击穿透设置决定是否接收事件
+            window.ignoresMouseEvents = windowConfig.allowsClickThrough
+        }
         
         // 更新窗口是否可移动
         window.isMovable = !windowConfig.isLocked

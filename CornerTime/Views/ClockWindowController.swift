@@ -182,8 +182,14 @@ class ClockWindowController: NSObject {
         
         let config = viewModel.windowManager.windowConfig
         
-        // 更新点击穿透（但拖拽时需要接收鼠标事件）
-        window.ignoresMouseEvents = config.allowsClickThrough && !config.enableDragging
+        // 更新点击穿透（拖拽启用时必须接收鼠标事件）
+        if config.enableDragging {
+            // 启用拖拽时，窗口必须接收鼠标事件
+            window.ignoresMouseEvents = false
+        } else {
+            // 禁用拖拽时，根据点击穿透设置决定是否接收事件
+            window.ignoresMouseEvents = config.allowsClickThrough
+        }
         
         // 更新窗口是否可移动
         window.isMovable = !config.isLocked
@@ -295,17 +301,22 @@ class ClockWindowController: NSObject {
     /// 设置拖拽事件处理
     @MainActor
     private func setupDragHandling(for view: NSView) {
-        // 直接在窗口上启用拖拽，而不是依赖手势识别器
         guard let window = clockWindow else { return }
         
-        // 简单直接的方法：让整个内容视图都能响应拖拽
+        // 确保视图能接收事件
         view.wantsLayer = true
         
         // 创建拖拽识别手势
         let dragGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
         dragGesture.buttonMask = 0x1 // 只响应鼠标左键
+        dragGesture.minimumNumberOfTouches = 1
+        dragGesture.maximumNumberOfTouches = 1
         
+        // 确保手势识别器能正常工作
         view.addGestureRecognizer(dragGesture)
+        
+        // 强制更新窗口属性以确保事件接收正确
+        updateWindowProperties()
         
         print("🫱 已为视图添加拖拽手势识别器")
         print("🫱 窗口属性: ignoresMouseEvents=\(window.ignoresMouseEvents), isMovable=\(window.isMovable)")
@@ -315,20 +326,36 @@ class ClockWindowController: NSObject {
     /// 处理拖拽手势
     @MainActor
     @objc private func handlePanGesture(_ gesture: NSPanGestureRecognizer) {
-        guard let window = clockWindow else { return }
+        guard let window = clockWindow else { 
+            print("❌ 无法获取时钟窗口")
+            return 
+        }
         
         let config = viewModel.windowManager.windowConfig
         
         // 检查是否允许拖拽
         guard config.enableDragging && !config.isLocked else { 
-            print("❌ 拖拽被禁用或窗口被锁定")
+            print("❌ 拖拽被禁用或窗口被锁定 - enableDragging: \(config.enableDragging), isLocked: \(config.isLocked)")
             return 
+        }
+        
+        // 确保窗口能接收鼠标事件
+        if window.ignoresMouseEvents {
+            print("⚠️ 窗口正在忽略鼠标事件，强制启用")
+            window.ignoresMouseEvents = false
         }
         
         print("🫱 拖拽手势状态: \(gesture.state.rawValue)")
         
-        let locationInWindow = gesture.location(in: window.contentView)
+        guard let contentView = window.contentView else {
+            print("❌ 无法获取窗口内容视图")
+            return
+        }
+        
+        let locationInWindow = gesture.location(in: contentView)
         let locationOnScreen = window.convertPoint(toScreen: locationInWindow)
+        
+        print("🫱 拖拽位置 - 窗口内: \(locationInWindow), 屏幕上: \(locationOnScreen)")
         
         switch gesture.state {
         case .began:
