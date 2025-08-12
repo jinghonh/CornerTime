@@ -23,7 +23,12 @@ struct ClockView: View {
             }
             .background(clockBackground)
             .cornerRadius(clockCornerRadius)
-            .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+            .shadow(
+                color: viewModel.preferencesManager.appearanceConfig.enableShadow ? .black.opacity(0.1) : .clear,
+                radius: viewModel.preferencesManager.appearanceConfig.shadowRadius,
+                x: 0,
+                y: 1
+            )
             .onTapGesture {
                 if !viewModel.allowsClickThrough {
                     handleClockTap()
@@ -47,8 +52,31 @@ struct ClockView: View {
     // MARK: - Computed Properties
     
     private var clockFont: Font {
-        let fontSize = viewModel.preferencesManager.appearanceConfig.fontSize
-        return .system(size: fontSize, weight: .medium, design: .monospaced)
+        let config = viewModel.preferencesManager.appearanceConfig
+        
+        let design: Font.Design = {
+            switch config.fontDesign {
+            case .default: return .default
+            case .monospaced: return .monospaced
+            case .rounded: return .rounded
+            case .serif: return .serif
+            }
+        }()
+        
+        let weight: Font.Weight = {
+            switch config.fontWeight {
+            case .ultraLight: return .ultraLight
+            case .light: return .light
+            case .regular: return .regular
+            case .medium: return .medium
+            case .semibold: return .semibold
+            case .bold: return .bold
+            case .heavy: return .heavy
+            case .black: return .black
+            }
+        }()
+        
+        return .system(size: config.fontSize, weight: weight, design: design)
     }
     
     private var clockColor: Color {
@@ -137,60 +165,86 @@ struct ClockView: View {
             }
             
             Menu("时间格式") {
-                Button("12小时制") {
-                    var format = viewModel.preferencesManager.timeFormat
-                    format = TimeFormat(
-                        is24Hour: false,
-                        showSeconds: format.showSeconds,
-                        showDate: format.showDate,
-                        showWeekday: format.showWeekday
-                    )
-                    viewModel.updateTimeFormat(format)
+                Button(viewModel.preferencesManager.timeFormat.is24Hour ? "切换到12小时制" : "切换到24小时制") {
+                    viewModel.toggle24HourFormat()
+                }
+                .keyboardShortcut("h", modifiers: [.command])
+                
+                Button(viewModel.preferencesManager.timeFormat.showSeconds ? "隐藏秒" : "显示秒") {
+                    viewModel.toggleSecondsDisplay()
+                }
+                .keyboardShortcut("s", modifiers: [.command])
+                
+                Divider()
+                
+                ForEach(DateFormatOption.allCases, id: \.self) { option in
+                    Button(option.displayName) {
+                        viewModel.updateDateFormat(option)
+                    }
+                    .disabled(option == viewModel.preferencesManager.timeFormat.dateFormat)
+                }
+            }
+            
+            Menu("外观设置") {
+                Menu("字体大小") {
+                    ForEach(viewModel.getFontSizePresets(), id: \.self) { size in
+                        Button("\(Int(size))pt") {
+                            viewModel.updateFontSize(size)
+                        }
+                        .disabled(size == viewModel.preferencesManager.appearanceConfig.fontSize)
+                    }
                 }
                 
-                Button("24小时制") {
-                    var format = viewModel.preferencesManager.timeFormat
-                    format = TimeFormat(
-                        is24Hour: true,
-                        showSeconds: format.showSeconds,
-                        showDate: format.showDate,
-                        showWeekday: format.showWeekday
-                    )
-                    viewModel.updateTimeFormat(format)
+                Menu("字体粗细") {
+                    ForEach(FontWeightOption.allCases, id: \.self) { weight in
+                        Button(weight.displayName) {
+                            viewModel.updateFontWeight(weight)
+                        }
+                        .disabled(weight == viewModel.preferencesManager.appearanceConfig.fontWeight)
+                    }
+                }
+                
+                Menu("字体设计") {
+                    ForEach(FontDesignOption.allCases, id: \.self) { design in
+                        Button(design.displayName) {
+                            viewModel.updateFontDesign(design)
+                        }
+                        .disabled(design == viewModel.preferencesManager.appearanceConfig.fontDesign)
+                    }
                 }
                 
                 Divider()
                 
-                Button(viewModel.preferencesManager.timeFormat.showSeconds ? "隐藏秒" : "显示秒") {
-                    var format = viewModel.preferencesManager.timeFormat
-                    format = TimeFormat(
-                        is24Hour: format.is24Hour,
-                        showSeconds: !format.showSeconds,
-                        showDate: format.showDate,
-                        showWeekday: format.showWeekday
-                    )
-                    viewModel.updateTimeFormat(format)
+                Button(viewModel.preferencesManager.appearanceConfig.enableShadow ? "禁用阴影" : "启用阴影") {
+                    viewModel.toggleShadow()
                 }
                 
-                Button(viewModel.preferencesManager.timeFormat.showDate ? "隐藏日期" : "显示日期") {
-                    var format = viewModel.preferencesManager.timeFormat
-                    format = TimeFormat(
-                        is24Hour: format.is24Hour,
-                        showSeconds: format.showSeconds,
-                        showDate: !format.showDate,
-                        showWeekday: format.showWeekday
-                    )
-                    viewModel.updateTimeFormat(format)
+                Menu("透明度") {
+                    ForEach([0.3, 0.5, 0.7, 0.8, 0.9, 1.0], id: \.self) { opacity in
+                        Button("\(Int(opacity * 100))%") {
+                            viewModel.updateOpacity(opacity)
+                        }
+                        .disabled(abs(opacity - viewModel.preferencesManager.appearanceConfig.opacity) < 0.01)
+                    }
                 }
             }
             
             Divider()
             
             // 状态显示
-            Text(viewModel.getLockStatusDescription())
-                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.getLockStatusDescription())
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                
+                Text(viewModel.getAppearanceDescription())
+                    .foregroundColor(.secondary)
+                    .font(.caption2)
+            }
             
             Divider()
+            
+            AppearanceButton(viewModel: viewModel)
             
             Button("设置...") {
                 viewModel.showSettings()

@@ -8,18 +8,66 @@
 import Foundation
 import Combine
 
+/// 日期格式选项
+enum DateFormatOption: String, Codable, CaseIterable {
+    case none = "none"
+    case short = "short"        // 12/25
+    case medium = "medium"      // 12月25日
+    case long = "long"          // 2024年12月25日
+    case weekday = "weekday"    // 星期三
+    case full = "full"          // 2024年12月25日 星期三
+    
+    var displayName: String {
+        switch self {
+        case .none: return "不显示"
+        case .short: return "简短 (12/25)"
+        case .medium: return "中等 (12月25日)"
+        case .long: return "完整 (2024年12月25日)"
+        case .weekday: return "星期 (星期三)"
+        case .full: return "详细 (2024年12月25日 星期三)"
+        }
+    }
+}
+
 /// 时间格式配置
 struct TimeFormat: Codable {
     let is24Hour: Bool
     let showSeconds: Bool
     let showDate: Bool
     let showWeekday: Bool
+    let dateFormat: DateFormatOption
+    let customSeparator: String
+    let useLocalizedFormat: Bool
     
-    init(is24Hour: Bool = true, showSeconds: Bool = true, showDate: Bool = false, showWeekday: Bool = false) {
+    // 为了向后兼容，保留原有的初始化方法
+    init(is24Hour: Bool = true, 
+         showSeconds: Bool = true, 
+         showDate: Bool = false, 
+         showWeekday: Bool = false) {
         self.is24Hour = is24Hour
         self.showSeconds = showSeconds
         self.showDate = showDate
         self.showWeekday = showWeekday
+        self.dateFormat = showDate ? (showWeekday ? .full : .medium) : .none
+        self.customSeparator = ":"
+        self.useLocalizedFormat = true
+    }
+    
+    // 新的完整初始化方法
+    init(is24Hour: Bool = true,
+         showSeconds: Bool = true,
+         showDate: Bool = false,
+         showWeekday: Bool = false,
+         dateFormat: DateFormatOption = .none,
+         customSeparator: String = ":",
+         useLocalizedFormat: Bool = true) {
+        self.is24Hour = is24Hour
+        self.showSeconds = showSeconds
+        self.showDate = showDate
+        self.showWeekday = showWeekday
+        self.dateFormat = dateFormat
+        self.customSeparator = customSeparator
+        self.useLocalizedFormat = useLocalizedFormat
     }
 }
 

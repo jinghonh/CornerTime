@@ -390,6 +390,190 @@ class ClockViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Appearance Controls
+    
+    /// 更新字体大小
+    func updateFontSize(_ size: CGFloat) {
+        let currentConfig = preferencesManager.appearanceConfig
+        let newConfig = AppearanceConfig(
+            fontSize: size,
+            fontWeight: currentConfig.fontWeight,
+            fontDesign: currentConfig.fontDesign,
+            opacity: currentConfig.opacity,
+            backgroundColor: currentConfig.backgroundColor,
+            cornerRadius: currentConfig.cornerRadius,
+            useBlurBackground: currentConfig.useBlurBackground,
+            enableShadow: currentConfig.enableShadow,
+            shadowRadius: currentConfig.shadowRadius,
+            textColor: currentConfig.textColor,
+            useSystemColors: currentConfig.useSystemColors
+        )
+        
+        preferencesManager.appearanceConfig = newConfig
+        print("📝 字体大小更新为: \(size)")
+    }
+    
+    /// 更新字体粗细
+    func updateFontWeight(_ weight: FontWeightOption) {
+        let currentConfig = preferencesManager.appearanceConfig
+        let newConfig = AppearanceConfig(
+            fontSize: currentConfig.fontSize,
+            fontWeight: weight,
+            fontDesign: currentConfig.fontDesign,
+            opacity: currentConfig.opacity,
+            backgroundColor: currentConfig.backgroundColor,
+            cornerRadius: currentConfig.cornerRadius,
+            useBlurBackground: currentConfig.useBlurBackground,
+            enableShadow: currentConfig.enableShadow,
+            shadowRadius: currentConfig.shadowRadius,
+            textColor: currentConfig.textColor,
+            useSystemColors: currentConfig.useSystemColors
+        )
+        
+        preferencesManager.appearanceConfig = newConfig
+        print("📝 字体粗细更新为: \(weight.displayName)")
+    }
+    
+    /// 更新字体设计
+    func updateFontDesign(_ design: FontDesignOption) {
+        let currentConfig = preferencesManager.appearanceConfig
+        let newConfig = AppearanceConfig(
+            fontSize: currentConfig.fontSize,
+            fontWeight: currentConfig.fontWeight,
+            fontDesign: design,
+            opacity: currentConfig.opacity,
+            backgroundColor: currentConfig.backgroundColor,
+            cornerRadius: currentConfig.cornerRadius,
+            useBlurBackground: currentConfig.useBlurBackground,
+            enableShadow: currentConfig.enableShadow,
+            shadowRadius: currentConfig.shadowRadius,
+            textColor: currentConfig.textColor,
+            useSystemColors: currentConfig.useSystemColors
+        )
+        
+        preferencesManager.appearanceConfig = newConfig
+        print("📝 字体设计更新为: \(design.displayName)")
+    }
+    
+    /// 切换24小时制
+    func toggle24HourFormat() {
+        let currentFormat = preferencesManager.timeFormat
+        let newFormat = TimeFormat(
+            is24Hour: !currentFormat.is24Hour,
+            showSeconds: currentFormat.showSeconds,
+            showDate: currentFormat.showDate,
+            showWeekday: currentFormat.showWeekday,
+            dateFormat: currentFormat.dateFormat,
+            customSeparator: currentFormat.customSeparator,
+            useLocalizedFormat: currentFormat.useLocalizedFormat
+        )
+        
+        preferencesManager.timeFormat = newFormat
+        print("⏰ 时间格式切换为: \(newFormat.is24Hour ? "24小时制" : "12小时制")")
+    }
+    
+    /// 切换秒显示
+    func toggleSecondsDisplay() {
+        let currentFormat = preferencesManager.timeFormat
+        let newFormat = TimeFormat(
+            is24Hour: currentFormat.is24Hour,
+            showSeconds: !currentFormat.showSeconds,
+            showDate: currentFormat.showDate,
+            showWeekday: currentFormat.showWeekday,
+            dateFormat: currentFormat.dateFormat,
+            customSeparator: currentFormat.customSeparator,
+            useLocalizedFormat: currentFormat.useLocalizedFormat
+        )
+        
+        preferencesManager.timeFormat = newFormat
+        print("⏱️ 秒显示切换为: \(newFormat.showSeconds ? "显示" : "隐藏")")
+    }
+    
+    /// 更新日期格式
+    func updateDateFormat(_ format: DateFormatOption) {
+        let currentFormat = preferencesManager.timeFormat
+        let newFormat = TimeFormat(
+            is24Hour: currentFormat.is24Hour,
+            showSeconds: currentFormat.showSeconds,
+            showDate: format != .none,
+            showWeekday: format == .weekday || format == .full,
+            dateFormat: format,
+            customSeparator: currentFormat.customSeparator,
+            useLocalizedFormat: currentFormat.useLocalizedFormat
+        )
+        
+        preferencesManager.timeFormat = newFormat
+        print("📅 日期格式更新为: \(format.displayName)")
+    }
+    
+    /// 更新透明度
+    func updateOpacity(_ opacity: Double) {
+        let currentConfig = preferencesManager.appearanceConfig
+        let newConfig = AppearanceConfig(
+            fontSize: currentConfig.fontSize,
+            fontWeight: currentConfig.fontWeight,
+            fontDesign: currentConfig.fontDesign,
+            opacity: opacity,
+            backgroundColor: currentConfig.backgroundColor,
+            cornerRadius: currentConfig.cornerRadius,
+            useBlurBackground: currentConfig.useBlurBackground,
+            enableShadow: currentConfig.enableShadow,
+            shadowRadius: currentConfig.shadowRadius,
+            textColor: currentConfig.textColor,
+            useSystemColors: currentConfig.useSystemColors
+        )
+        
+        preferencesManager.appearanceConfig = newConfig
+        print("🌫️ 透明度更新为: \(Int(opacity * 100))%")
+    }
+    
+    /// 切换阴影效果
+    func toggleShadow() {
+        let currentConfig = preferencesManager.appearanceConfig
+        let newConfig = AppearanceConfig(
+            fontSize: currentConfig.fontSize,
+            fontWeight: currentConfig.fontWeight,
+            fontDesign: currentConfig.fontDesign,
+            opacity: currentConfig.opacity,
+            backgroundColor: currentConfig.backgroundColor,
+            cornerRadius: currentConfig.cornerRadius,
+            useBlurBackground: currentConfig.useBlurBackground,
+            enableShadow: !currentConfig.enableShadow,
+            shadowRadius: currentConfig.shadowRadius,
+            textColor: currentConfig.textColor,
+            useSystemColors: currentConfig.useSystemColors
+        )
+        
+        preferencesManager.appearanceConfig = newConfig
+        print("💫 阴影效果切换为: \(newConfig.enableShadow ? "启用" : "禁用")")
+    }
+    
+    /// 预设字体大小选项
+    func getFontSizePresets() -> [CGFloat] {
+        return [12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48]
+    }
+    
+    /// 获取当前外观描述
+    func getAppearanceDescription() -> String {
+        let config = preferencesManager.appearanceConfig
+        let format = preferencesManager.timeFormat
+        
+        var parts: [String] = []
+        parts.append("\(Int(config.fontSize))pt")
+        parts.append(config.fontWeight.displayName)
+        parts.append(format.is24Hour ? "24h" : "12h")
+        
+        if format.showSeconds {
+            parts.append("显示秒")
+        }
+        
+        if format.dateFormat != .none {
+            parts.append("显示日期")
+        }
+        
+        return parts.joined(separator: " • ")
+    }
+    
     private func updateWindowConfig() {
         let currentConfig = preferencesManager.windowConfig
         let newConfig = WindowConfig(

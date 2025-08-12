@@ -9,27 +9,97 @@ import Foundation
 import Combine
 import AppKit
 
+/// 字体粗细选项
+enum FontWeightOption: String, Codable, CaseIterable {
+    case ultraLight = "ultraLight"
+    case light = "light"
+    case regular = "regular"
+    case medium = "medium"
+    case semibold = "semibold"
+    case bold = "bold"
+    case heavy = "heavy"
+    case black = "black"
+    
+    var displayName: String {
+        switch self {
+        case .ultraLight: return "极细"
+        case .light: return "细"
+        case .regular: return "常规"
+        case .medium: return "中等"
+        case .semibold: return "半粗"
+        case .bold: return "粗体"
+        case .heavy: return "重"
+        case .black: return "黑体"
+        }
+    }
+    
+    var fontWeight: NSFont.Weight {
+        switch self {
+        case .ultraLight: return .ultraLight
+        case .light: return .light
+        case .regular: return .regular
+        case .medium: return .medium
+        case .semibold: return .semibold
+        case .bold: return .bold
+        case .heavy: return .heavy
+        case .black: return .black
+        }
+    }
+}
+
+/// 字体设计选项
+enum FontDesignOption: String, Codable, CaseIterable {
+    case `default` = "default"
+    case monospaced = "monospaced"
+    case rounded = "rounded"
+    case serif = "serif"
+    
+    var displayName: String {
+        switch self {
+        case .default: return "默认"
+        case .monospaced: return "等宽"
+        case .rounded: return "圆润"
+        case .serif: return "衬线"
+        }
+    }
+}
+
 /// 外观配置
 struct AppearanceConfig: Codable {
     let fontSize: CGFloat
-    let fontWeight: String
+    let fontWeight: FontWeightOption
+    let fontDesign: FontDesignOption
     let opacity: Double
     let backgroundColor: String
     let cornerRadius: CGFloat
     let useBlurBackground: Bool
+    let enableShadow: Bool
+    let shadowRadius: CGFloat
+    let textColor: String
+    let useSystemColors: Bool
     
-    init(fontSize: CGFloat = 14,
-         fontWeight: String = "regular",
+    init(fontSize: CGFloat = 24,
+         fontWeight: FontWeightOption = .medium,
+         fontDesign: FontDesignOption = .monospaced,
          opacity: Double = 1.0,
          backgroundColor: String = "clear",
          cornerRadius: CGFloat = 4,
-         useBlurBackground: Bool = false) {
+         useBlurBackground: Bool = false,
+         enableShadow: Bool = true,
+         shadowRadius: CGFloat = 1,
+         textColor: String = "primary",
+         useSystemColors: Bool = true) {
         self.fontSize = fontSize
         self.fontWeight = fontWeight
+        self.fontDesign = fontDesign
         self.opacity = opacity
         self.backgroundColor = backgroundColor
         self.cornerRadius = cornerRadius
         self.useBlurBackground = useBlurBackground
+        self.enableShadow = enableShadow
+        self.shadowRadius = shadowRadius
+        self.textColor = textColor
+        self.useSystemColors = useSystemColors
     }
 }
 
