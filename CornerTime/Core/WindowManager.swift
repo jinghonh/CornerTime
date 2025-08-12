@@ -39,17 +39,35 @@ struct WindowConfig: Codable {
     let margin: CGFloat
     let isLocked: Bool
     let allowsClickThrough: Bool
+    let enableDragging: Bool
+    let enableSnapping: Bool
+    let snapDistance: CGFloat
+    let rememberPosition: Bool
+    let respectSafeArea: Bool
+    let lastSavedPosition: CGPoint?
     
     init(position: WindowPosition = .topRight,
          customPoint: CGPoint? = nil,
          margin: CGFloat = 20,
          isLocked: Bool = false,
-         allowsClickThrough: Bool = false) {
+         allowsClickThrough: Bool = false,
+         enableDragging: Bool = true,
+         enableSnapping: Bool = true,
+         snapDistance: CGFloat = 20,
+         rememberPosition: Bool = true,
+         respectSafeArea: Bool = true,
+         lastSavedPosition: CGPoint? = nil) {
         self.position = position
         self.customPoint = customPoint
         self.margin = margin
         self.isLocked = isLocked
         self.allowsClickThrough = allowsClickThrough
+        self.enableDragging = enableDragging
+        self.enableSnapping = enableSnapping
+        self.snapDistance = snapDistance
+        self.rememberPosition = rememberPosition
+        self.respectSafeArea = respectSafeArea
+        self.lastSavedPosition = lastSavedPosition
     }
 }
 
@@ -63,9 +81,11 @@ class WindowManager: ObservableObject {
     // MARK: - Private Properties
     private var clockWindow: NSWindow?
     private var cancellables = Set<AnyCancellable>()
+    private var dragSnapManager: DragSnapManager?
     
     // MARK: - Initialization
     init() {
+        setupDragSnapManager()
         setupWindowObservers()
     }
     
@@ -94,6 +114,10 @@ class WindowManager: ObservableObject {
         window.contentView = contentView
         
         clockWindow = window
+        
+        // 设置拖拽管理器的目标窗口
+        dragSnapManager?.setTargetWindow(window)
+        
         updateWindowPosition()
         
         if isVisible {
@@ -291,5 +315,76 @@ class WindowManager: ObservableObject {
         } else {
             return NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         }
+    }
+    
+    // MARK: - Drag and Snap Support
+    
+    /// 获取拖拽管理器
+    func getDragSnapManager() -> DragSnapManager? {
+        return dragSnapManager
+    }
+    
+    /// 保存当前窗口位置
+    func saveCurrentPosition() {
+        guard let window = clockWindow,
+              windowConfig.rememberPosition else { return }
+        
+        let currentPosition = window.frame.origin
+        
+        // 创建新的配置并更新保存的位置
+        let newConfig = WindowConfig(
+            position: windowConfig.position,
+            customPoint: windowConfig.customPoint,
+            margin: windowConfig.margin,
+            isLocked: windowConfig.isLocked,
+            allowsClickThrough: windowConfig.allowsClickThrough,
+            enableDragging: windowConfig.enableDragging,
+            enableSnapping: windowConfig.enableSnapping,
+            snapDistance: windowConfig.snapDistance,
+            rememberPosition: windowConfig.rememberPosition,
+            respectSafeArea: windowConfig.respectSafeArea,
+            lastSavedPosition: currentPosition
+        )
+        
+        windowConfig = newConfig
+        print("💾 已保存窗口位置: \(currentPosition)")
+    }
+    
+    /// 处理窗口拖拽事件
+    func handleWindowDrag(event: DragEvent) {
+        guard let dragManager = dragSnapManager else { return }
+        
+        switch event {
+        case .started(let point):
+            dragManager.startDragging(at: point)
+        case .moved(let point):
+            dragManager.handleDragMove(to: point)
+        case .ended:
+            dragManager.endDragging()
+            if windowConfig.rememberPosition {
+                saveCurrentPosition()
+            }
+        }
+    }
+    
+    /// 设置拖拽管理器
+    private func setupDragSnapManager() {
+        dragSnapManager = DragSnapManager(config: windowConfig)
+    }
+    
+    /// 更新窗口配置（新版本支持拖拽和位置记忆）
+    func updateWindowConfigWithDragSupport(_ newConfig: WindowConfig) {
+        let oldConfig = windowConfig
+        windowConfig = newConfig
+        
+        // 更新拖拽管理器配置
+        dragSnapManager?.updateConfig(newConfig)
+        
+        // 如果启用了位置记忆且位置发生了变化，保存新位置
+        if newConfig.rememberPosition && oldConfig.lastSavedPosition != newConfig.lastSavedPosition {
+            saveCurrentPosition()
+        }
+        
+        updateWindowPosition()
     }
 }

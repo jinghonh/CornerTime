@@ -244,6 +244,97 @@ class ClockViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Position and Drag Support
+    
+    /// 更新拖拽设置
+    func updateDragSettings(enableDragging: Bool, enableSnapping: Bool, snapDistance: CGFloat) {
+        let currentConfig = preferencesManager.windowConfig
+        let newConfig = WindowConfig(
+            position: currentConfig.position,
+            customPoint: currentConfig.customPoint,
+            margin: currentConfig.margin,
+            isLocked: currentConfig.isLocked,
+            allowsClickThrough: currentConfig.allowsClickThrough,
+            enableDragging: enableDragging,
+            enableSnapping: enableSnapping,
+            snapDistance: snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: currentConfig.lastSavedPosition
+        )
+        
+        preferencesManager.updateWindowConfig(newConfig)
+        windowManager.updateWindowConfigWithDragSupport(newConfig)
+    }
+    
+    /// 更新位置记忆设置
+    func updatePositionMemory(enabled: Bool) {
+        let currentConfig = preferencesManager.windowConfig
+        let newConfig = WindowConfig(
+            position: currentConfig.position,
+            customPoint: currentConfig.customPoint,
+            margin: currentConfig.margin,
+            isLocked: currentConfig.isLocked,
+            allowsClickThrough: currentConfig.allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: enabled,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: enabled ? currentConfig.lastSavedPosition : nil
+        )
+        
+        preferencesManager.updateWindowConfig(newConfig)
+        windowManager.updateWindowConfigWithDragSupport(newConfig)
+    }
+    
+    /// 更新安全区域设置
+    func updateSafeAreaSettings(respectSafeArea: Bool) {
+        let currentConfig = preferencesManager.windowConfig
+        let newConfig = WindowConfig(
+            position: currentConfig.position,
+            customPoint: currentConfig.customPoint,
+            margin: currentConfig.margin,
+            isLocked: currentConfig.isLocked,
+            allowsClickThrough: currentConfig.allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: respectSafeArea,
+            lastSavedPosition: currentConfig.lastSavedPosition
+        )
+        
+        preferencesManager.updateWindowConfig(newConfig)
+        windowManager.updateWindowConfigWithDragSupport(newConfig)
+    }
+    
+    /// 保存当前位置
+    func saveCurrentPosition() {
+        windowManager.saveCurrentPosition()
+    }
+    
+    /// 重置位置到默认
+    func resetToDefaultPosition() {
+        let currentConfig = preferencesManager.windowConfig
+        let newConfig = WindowConfig(
+            position: .topRight, // 重置为默认位置
+            customPoint: nil,
+            margin: currentConfig.margin,
+            isLocked: currentConfig.isLocked,
+            allowsClickThrough: currentConfig.allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: nil // 清除保存的位置
+        )
+        
+        preferencesManager.updateWindowConfig(newConfig)
+        windowManager.updateWindowConfigWithDragSupport(newConfig)
+    }
+    
     private func updateWindowConfig() {
         let currentConfig = preferencesManager.windowConfig
         let newConfig = WindowConfig(
@@ -251,8 +342,16 @@ class ClockViewModel: ObservableObject {
             customPoint: currentConfig.customPoint,
             margin: currentConfig.margin,
             isLocked: isLocked,
-            allowsClickThrough: allowsClickThrough
+            allowsClickThrough: allowsClickThrough,
+            enableDragging: currentConfig.enableDragging,
+            enableSnapping: currentConfig.enableSnapping,
+            snapDistance: currentConfig.snapDistance,
+            rememberPosition: currentConfig.rememberPosition,
+            respectSafeArea: currentConfig.respectSafeArea,
+            lastSavedPosition: currentConfig.lastSavedPosition
         )
-        preferencesManager.windowConfig = newConfig
+        
+        preferencesManager.updateWindowConfig(newConfig)
+        windowManager.updateWindowConfigWithDragSupport(newConfig)
     }
 }

@@ -293,6 +293,13 @@ class PreferencesManager: ObservableObject {
         saveConfiguration(displayConfig, key: Keys.displayConfig)
         saveConfiguration(advancedConfig, key: Keys.advancedConfig)
     }
+    
+    /// 更新窗口配置
+    @MainActor
+    func updateWindowConfig(_ newConfig: WindowConfig) {
+        windowConfig = newConfig
+        objectWillChange.send()
+    }
 }
 
 // MARK: - Configuration Bundle

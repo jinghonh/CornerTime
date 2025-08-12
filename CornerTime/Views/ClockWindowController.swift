@@ -17,6 +17,10 @@ class ClockWindowController: NSObject {
     private var hostingView: NSHostingView<ClockView>?
     private var cancellables = Set<AnyCancellable>()
     
+    // 拖拽相关属性
+    private var dragStartPoint: CGPoint?
+    private var isDragging: Bool = false
+    
     // MARK: - Initialization
     init(viewModel: ClockViewModel) {
         self.viewModel = viewModel
@@ -66,6 +70,11 @@ class ClockWindowController: NSObject {
         // 创建时钟视图
         let clockView = ClockView(viewModel: viewModel)
         hostingView = NSHostingView(rootView: clockView)
+        
+        // 设置拖拽事件处理
+        if let contentView = hostingView {
+            setupDragHandling(for: contentView)
+        }
         
         guard let contentView = hostingView else { 
             print("❌ 错误：无法创建hosting view")
@@ -276,6 +285,78 @@ class ClockWindowController: NSObject {
         }
         
         return safePosition
+    }
+    
+    // MARK: - Drag Support
+    
+    /// 设置拖拽事件处理
+    private func setupDragHandling(for view: NSView) {
+        // 创建拖拽识别手势
+        let dragGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+        view.addGestureRecognizer(dragGesture)
+    }
+    
+    /// 处理拖拽手势
+    @MainActor
+    @objc private func handlePanGesture(_ gesture: NSPanGestureRecognizer) {
+        guard let window = clockWindow else { return }
+        
+        let config = viewModel.windowManager.windowConfig
+        
+        // 检查是否允许拖拽
+        guard config.enableDragging && !config.isLocked else { return }
+        
+        let locationInWindow = gesture.location(in: window.contentView)
+        let locationOnScreen = window.convertPoint(toScreen: locationInWindow)
+        
+        switch gesture.state {
+        case .began:
+            handleDragStart(at: locationOnScreen)
+            
+        case .changed:
+            handleDragMove(to: locationOnScreen)
+            
+        case .ended, .cancelled, .failed:
+            handleDragEnd()
+            
+        default:
+            break
+        }
+    }
+    
+    /// 开始拖拽
+    @MainActor
+    private func handleDragStart(at point: CGPoint) {
+        dragStartPoint = point
+        isDragging = true
+        
+        // 通知窗口管理器开始拖拽
+        viewModel.windowManager.handleWindowDrag(event: .started(point))
+        
+        print("🫸 开始拖拽时钟窗口")
+    }
+    
+    /// 拖拽移动
+    @MainActor
+    private func handleDragMove(to point: CGPoint) {
+        guard isDragging else { return }
+        
+        // 通知窗口管理器处理拖拽移动
+        viewModel.windowManager.handleWindowDrag(event: .moved(point))
+    }
+    
+    /// 结束拖拽
+    @MainActor
+    private func handleDragEnd() {
+        guard isDragging else { return }
+        
+        isDragging = false
+        dragStartPoint = nil
+        
+        // 通知窗口管理器结束拖拽
+        viewModel.windowManager.handleWindowDrag(event: .ended)
+        
+        print("🫷 结束拖拽时钟窗口")
     }
     
     @MainActor
