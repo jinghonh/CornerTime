@@ -21,13 +21,16 @@ class ClockWindowController: NSObject {
     init(viewModel: ClockViewModel) {
         self.viewModel = viewModel
         super.init()
-        setupWindow()
-        setupBindings()
+        Task { @MainActor in
+            self.setupWindow()
+            self.setupBindings()
+        }
     }
     
     // MARK: - Public Methods
     
     /// 显示窗口
+    @MainActor
     func showWindow() {
         guard let window = clockWindow else { return }
         window.orderFrontRegardless()
@@ -53,6 +56,7 @@ class ClockWindowController: NSObject {
     
     // MARK: - Private Methods
     
+    @MainActor
     private func setupWindow() {
         // 创建时钟视图
         let clockView = ClockView(viewModel: viewModel)
@@ -103,30 +107,38 @@ class ClockWindowController: NSObject {
         updateWindowVisibility()
     }
     
+    @MainActor
     private func setupBindings() {
         // 监听可见性变化
         viewModel.$isVisible
             .sink { [weak self] isVisible in
-                self?.updateWindowVisibility()
+                Task { @MainActor in
+                    self?.updateWindowVisibility()
+                }
             }
             .store(in: &cancellables)
         
         // 监听窗口配置变化
         viewModel.windowManager.$windowConfig
             .sink { [weak self] _ in
-                self?.updateWindowProperties()
-                self?.updateWindowPosition()
+                Task { @MainActor in
+                    self?.updateWindowProperties()
+                    self?.updateWindowPosition()
+                }
             }
             .store(in: &cancellables)
         
         // 监听时间更新来调整窗口大小
         viewModel.$currentTime
             .sink { [weak self] _ in
-                self?.updateWindowSize()
+                Task { @MainActor in
+                    self?.updateWindowSize()
+                }
             }
             .store(in: &cancellables)
     }
     
+    @MainActor
     private func updateWindowVisibility() {
         guard let window = clockWindow else { return }
         
@@ -137,6 +149,7 @@ class ClockWindowController: NSObject {
         }
     }
     
+    @MainActor
     private func updateWindowProperties() {
         guard let window = clockWindow else { return }
         
@@ -152,10 +165,11 @@ class ClockWindowController: NSObject {
         if viewModel.preferencesManager.behaviorConfig.hideFromScreenshots {
             window.sharingType = .none
         } else {
-            window.sharingType = .readWrite
+            window.sharingType = .readOnly
         }
     }
     
+    @MainActor
     private func updateWindowPosition() {
         guard let window = clockWindow,
               let screen = getTargetScreen() else { return }
@@ -205,6 +219,7 @@ class ClockWindowController: NSObject {
         window.setFrameOrigin(position)
     }
     
+    @MainActor
     private func updateWindowSize() {
         guard let window = clockWindow,
               let contentView = hostingView else { return }
@@ -227,6 +242,7 @@ class ClockWindowController: NSObject {
         }
     }
     
+    @MainActor
     private func getTargetScreen() -> NSScreen? {
         // 根据显示器配置获取目标屏幕
         let displayConfig = viewModel.preferencesManager.displayConfig

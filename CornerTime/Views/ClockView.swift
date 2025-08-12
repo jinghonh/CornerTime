@@ -76,7 +76,7 @@ struct ClockView: View {
             Button("显示/隐藏") {
                 viewModel.toggleVisibility()
             }
-            .keyboardShortcut("space", modifiers: [.command, .control])
+            .keyboardShortcut(.space, modifiers: [.command, .control])
             
             Divider()
             

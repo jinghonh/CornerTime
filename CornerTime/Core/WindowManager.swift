@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 /// 窗口位置枚举
-enum WindowPosition: String, CaseIterable {
+enum WindowPosition: String, CaseIterable, Codable {
     case topLeft = "topLeft"
     case topRight = "topRight"
     case bottomLeft = "bottomLeft"
@@ -33,7 +33,7 @@ enum WindowPosition: String, CaseIterable {
 }
 
 /// 窗口配置
-struct WindowConfig {
+struct WindowConfig: Codable {
     let position: WindowPosition
     let customPoint: CGPoint?
     let margin: CGFloat

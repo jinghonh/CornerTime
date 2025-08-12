@@ -133,14 +133,14 @@ class PreferencesManager: ObservableObject {
     
     /// 导出配置到文件
     func exportConfiguration() -> Data? {
-        let configuration = [
-            "timeFormat": timeFormat,
-            "windowConfig": windowConfig,
-            "appearanceConfig": appearanceConfig,
-            "behaviorConfig": behaviorConfig,
-            "displayConfig": displayConfig,
-            "advancedConfig": advancedConfig
-        ]
+        let configuration = ConfigurationBundle(
+            timeFormat: timeFormat,
+            windowConfig: windowConfig,
+            appearanceConfig: appearanceConfig,
+            behaviorConfig: behaviorConfig,
+            displayConfig: displayConfig,
+            advancedConfig: advancedConfig
+        )
         
         return try? JSONEncoder().encode(configuration)
     }
@@ -253,8 +253,14 @@ class PreferencesManager: ObservableObject {
     }
 }
 
-// MARK: - Extensions
+// MARK: - Configuration Bundle
 
-extension TimeFormat: Codable {}
-extension WindowPosition: Codable {}
-extension WindowConfig: Codable {}
+/// 配置导出/导入的包装结构
+struct ConfigurationBundle: Codable {
+    let timeFormat: TimeFormat
+    let windowConfig: WindowConfig
+    let appearanceConfig: AppearanceConfig
+    let behaviorConfig: BehaviorConfig
+    let displayConfig: DisplayConfig
+    let advancedConfig: AdvancedConfig
+}

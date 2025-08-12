@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 /// 时间格式配置
-struct TimeFormat {
+struct TimeFormat: Codable {
     let is24Hour: Bool
     let showSeconds: Bool
     let showDate: Bool
@@ -51,7 +51,8 @@ class ClockCore: ObservableObject {
     }
     
     deinit {
-        stopTimer()
+        timer?.invalidate()
+        timer = nil
     }
     
     // MARK: - Public Methods
