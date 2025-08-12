@@ -22,9 +22,9 @@ struct DisplayInfo {
         self.frame = screen.frame
         self.isMain = screen == NSScreen.main
         
-        // 获取显示器UUID
+        // 获取显示器UUID - 使用字符串表示避免整数溢出
         if let uuid = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
-            self.uuid = "display_\(uuid.intValue)"
+            self.uuid = "display_\(uuid.stringValue)"
         } else {
             self.uuid = "display_unknown"
         }
@@ -123,7 +123,7 @@ class DisplayManager: ObservableObject {
 extension NSScreen {
     var uuid: String {
         if let screenNumber = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
-            return "display_\(screenNumber.intValue)"
+            return "display_\(screenNumber.stringValue)"
         }
         return "display_unknown"
     }

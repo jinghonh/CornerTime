@@ -81,8 +81,8 @@ class ClockWindowController: NSObject {
         window.acceptsMouseMovedEvents = true
         window.delegate = self
         
-        // 窗口层级设置 - 使其在全屏应用上方可见
-        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)))
+        // 窗口层级设置 - 使其在全屏应用上方可见，使用安全的层级值
+        window.level = .statusBar
         
         // 空间行为设置 - 支持所有空间和全屏辅助
         window.collectionBehavior = [

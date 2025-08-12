@@ -25,13 +25,8 @@ struct CornerTimeApp: App {
     }
     
     init() {
-        // 设置应用启动时的初始配置
-        setupApplication()
-    }
-    
-    private func setupApplication() {
-        // 确保应用在启动时不显示在 Dock 中
-        NSApp.setActivationPolicy(.accessory)
+        // 其他初始化设置可以在这里进行
+        // NSApp 相关的设置需要在 AppDelegate 中进行
     }
 }
 
@@ -41,11 +36,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var clockWindowController: ClockWindowController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 设置应用在启动时不显示在 Dock 中
+        NSApp.setActivationPolicy(.accessory)
+        
         // 初始化时钟视图模型
         clockViewModel = ClockViewModel()
         
         // 创建并显示时钟窗口
-        setupClockWindow()
+        Task { @MainActor in
+            setupClockWindow()
+        }
         
         // 隐藏主窗口
         hideMainWindow()
@@ -62,6 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
     
+    @MainActor
     private func setupClockWindow() {
         guard let viewModel = clockViewModel else { return }
         

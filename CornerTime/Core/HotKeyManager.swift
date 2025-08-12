@@ -77,8 +77,10 @@ class HotKeyManager: ObservableObject {
         unregisterHotKey(identifier: config.identifier)
         
         var hotKeyRef: EventHotKeyRef?
-        let signature = OSType(config.identifier.hash)
-        let hotKeyID = EventHotKeyID(signature: signature, id: UInt32(config.identifier.hash))
+        // 安全地转换哈希值，避免整数溢出
+        let hashValue = abs(config.identifier.hash)
+        let signature = OSType(hashValue & 0xFFFFFFFF)  // 截取低32位
+        let hotKeyID = EventHotKeyID(signature: signature, id: UInt32(hashValue & 0xFFFFFFFF))
         
         let status = RegisterEventHotKey(
             config.keyCode,
