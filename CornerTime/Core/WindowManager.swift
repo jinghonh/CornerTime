@@ -105,7 +105,7 @@ class WindowManager: ObservableObject {
         window.isOpaque = false
         window.hasShadow = false
         window.acceptsMouseMovedEvents = true
-        window.ignoresMouseEvents = windowConfig.allowsClickThrough
+        window.ignoresMouseEvents = windowConfig.allowsClickThrough && !windowConfig.enableDragging
         
         // 动态设置窗口层级和行为
         updateWindowLevelAndBehavior(window: window, behaviorConfig: behaviorConfig, spaceManager: spaceManager)
@@ -296,8 +296,8 @@ class WindowManager: ObservableObject {
     private func updateWindowProperties() {
         guard let window = clockWindow else { return }
         
-        // 更新点击穿透设置
-        window.ignoresMouseEvents = windowConfig.allowsClickThrough
+        // 更新点击穿透设置（但拖拽时需要接收鼠标事件）
+        window.ignoresMouseEvents = windowConfig.allowsClickThrough && !windowConfig.enableDragging
         
         // 更新窗口是否可移动
         window.isMovable = !windowConfig.isLocked

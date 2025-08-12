@@ -179,8 +179,8 @@ class ClockWindowController: NSObject {
         
         let config = viewModel.windowManager.windowConfig
         
-        // 更新点击穿透
-        window.ignoresMouseEvents = config.allowsClickThrough
+        // 更新点击穿透（但拖拽时需要接收鼠标事件）
+        window.ignoresMouseEvents = config.allowsClickThrough && !config.enableDragging
         
         // 更新窗口是否可移动
         window.isMovable = !config.isLocked
@@ -293,18 +293,31 @@ class ClockWindowController: NSObject {
     private func setupDragHandling(for view: NSView) {
         // 创建拖拽识别手势
         let dragGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+        
+        // 配置手势识别器
+        dragGesture.buttonMask = 0x1 // 只响应鼠标左键
+        
         view.addGestureRecognizer(dragGesture)
+        print("🫱 已为视图添加拖拽手势识别器: \(view.className)")
     }
     
     /// 处理拖拽手势
     @MainActor
     @objc private func handlePanGesture(_ gesture: NSPanGestureRecognizer) {
-        guard let window = clockWindow else { return }
+        guard let window = clockWindow else { 
+            print("❌ 拖拽手势：窗口不存在")
+            return 
+        }
         
         let config = viewModel.windowManager.windowConfig
         
         // 检查是否允许拖拽
-        guard config.enableDragging && !config.isLocked else { return }
+        guard config.enableDragging && !config.isLocked else { 
+            print("❌ 拖拽手势：拖拽被禁用或窗口被锁定 (enableDragging: \(config.enableDragging), isLocked: \(config.isLocked))")
+            return 
+        }
+        
+        print("🫱 拖拽手势状态: \(gesture.state.rawValue)")
         
         let locationInWindow = gesture.location(in: window.contentView)
         let locationOnScreen = window.convertPoint(toScreen: locationInWindow)
