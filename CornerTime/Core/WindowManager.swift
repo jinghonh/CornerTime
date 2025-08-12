@@ -175,6 +175,7 @@ class WindowManager: ObservableObject {
     /// 更新窗口配置
     func updateConfig(_ config: WindowConfig) {
         windowConfig = config
+        dragSnapManager?.updateConfig(config)
         updateWindowProperties()
         updateWindowPosition()
     }
@@ -301,6 +302,9 @@ class WindowManager: ObservableObject {
         
         // 更新窗口是否可移动
         window.isMovable = !windowConfig.isLocked
+        
+        // 同步更新拖拽管理器配置
+        updateDragSnapManagerConfig()
     }
     
     private func getTargetScreen() -> NSScreen? {
@@ -430,6 +434,11 @@ class WindowManager: ObservableObject {
     /// 设置拖拽管理器
     private func setupDragSnapManager() {
         dragSnapManager = DragSnapManager(config: windowConfig)
+    }
+    
+    /// 更新拖拽管理器配置
+    private func updateDragSnapManagerConfig() {
+        dragSnapManager?.updateConfig(windowConfig)
     }
     
     /// 连接窗口到拖拽管理器（供外部创建的窗口使用）

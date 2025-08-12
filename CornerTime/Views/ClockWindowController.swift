@@ -339,7 +339,11 @@ class ClockWindowController: NSObject {
         print("🫱 拖拽手势状态: \(gesture.state.rawValue)")
         
         let locationInWindow = gesture.location(in: window.contentView)
-        let locationOnScreen = window.convertPoint(toScreen: locationInWindow)
+        let windowOrigin = window.frame.origin
+        let locationOnScreen = CGPoint(
+            x: windowOrigin.x + locationInWindow.x,
+            y: windowOrigin.y + locationInWindow.y
+        )
         
         switch gesture.state {
         case .began:

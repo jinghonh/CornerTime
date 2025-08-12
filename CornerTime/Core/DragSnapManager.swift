@@ -71,7 +71,10 @@ class DragSnapManager: ObservableObject {
     /// 处理拖拽移动
     func handleDragMove(to point: CGPoint) {
         guard case let .dragging(startPoint, initialFrame) = dragState,
-              let window = targetWindow else { return }
+              let window = targetWindow else { 
+            print("❌ 拖拽状态无效或窗口不存在")
+            return 
+        }
         
         // 计算新位置
         let deltaX = point.x - startPoint.x
@@ -80,6 +83,8 @@ class DragSnapManager: ObservableObject {
             x: initialFrame.origin.x + deltaX,
             y: initialFrame.origin.y + deltaY
         )
+        
+        print("🔄 拖拽移动: 当前点=\(point), 起始点=\(startPoint), 偏移=(\(deltaX), \(deltaY)), 新位置=\(newOrigin)")
         
         // 应用吸附
         let snappedPosition = applySnapping(to: newOrigin, windowSize: window.frame.size)
