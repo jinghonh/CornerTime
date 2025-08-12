@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import AppKit
 
 /// 外观配置
 struct AppearanceConfig: Codable {
@@ -32,6 +33,35 @@ struct AppearanceConfig: Codable {
     }
 }
 
+/// 窗口层级类型
+enum WindowLevelType: String, Codable, CaseIterable {
+    case normal = "normal"
+    case floating = "floating"
+    case statusBar = "statusBar"
+    case modalPanel = "modalPanel"
+    case popupMenu = "popupMenu"
+    
+    var displayName: String {
+        switch self {
+        case .normal: return "普通"
+        case .floating: return "浮动"
+        case .statusBar: return "状态栏"
+        case .modalPanel: return "模态面板"
+        case .popupMenu: return "弹出菜单"
+        }
+    }
+    
+    var nsWindowLevel: NSWindow.Level {
+        switch self {
+        case .normal: return .normal
+        case .floating: return .floating
+        case .statusBar: return .statusBar
+        case .modalPanel: return .modalPanel
+        case .popupMenu: return .popUpMenu
+        }
+    }
+}
+
 /// 行为配置
 struct BehaviorConfig: Codable {
     let launchAtLogin: Bool
@@ -39,17 +69,29 @@ struct BehaviorConfig: Codable {
     let hideFromScreenshots: Bool
     let enableAutoHide: Bool
     let autoHideDelay: TimeInterval
+    let windowLevel: WindowLevelType
+    let showInFullScreen: Bool
+    let showInAllSpaces: Bool
+    let stayOnTop: Bool
     
     init(launchAtLogin: Bool = false,
          hideFromDock: Bool = true,
          hideFromScreenshots: Bool = false,
          enableAutoHide: Bool = false,
-         autoHideDelay: TimeInterval = 5.0) {
+         autoHideDelay: TimeInterval = 5.0,
+         windowLevel: WindowLevelType = .statusBar,
+         showInFullScreen: Bool = true,
+         showInAllSpaces: Bool = true,
+         stayOnTop: Bool = true) {
         self.launchAtLogin = launchAtLogin
         self.hideFromDock = hideFromDock
         self.hideFromScreenshots = hideFromScreenshots
         self.enableAutoHide = enableAutoHide
         self.autoHideDelay = autoHideDelay
+        self.windowLevel = windowLevel
+        self.showInFullScreen = showInFullScreen
+        self.showInAllSpaces = showInAllSpaces
+        self.stayOnTop = stayOnTop
     }
 }
 

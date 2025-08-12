@@ -36,11 +36,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var clockWindowController: ClockWindowController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 设置应用在启动时不显示在 Dock 中
-        NSApp.setActivationPolicy(.accessory)
+        print("🚀 CornerTime 应用启动中...")
+        
+        // 临时设置应用在 Dock 中显示以便调试
+        // 正式版本应该使用 .accessory
+        NSApp.setActivationPolicy(.regular)
+        print("✅ 应用策略设置为 regular 模式（调试版本）")
         
         // 初始化时钟视图模型
         clockViewModel = ClockViewModel()
+        print("✅ 时钟视图模型初始化完成")
         
         // 创建并显示时钟窗口
         Task { @MainActor in
@@ -49,6 +54,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // 隐藏主窗口
         hideMainWindow()
+        
+        print("🎯 CornerTime 启动完成！时钟应该显示在屏幕右上角")
+        print("💡 提示：使用 Cmd+Ctrl+Space 切换显示/隐藏")
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -64,9 +72,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @MainActor
     private func setupClockWindow() {
-        guard let viewModel = clockViewModel else { return }
+        guard let viewModel = clockViewModel else { 
+            print("❌ 错误：时钟视图模型为空")
+            return 
+        }
         
+        print("🔧 创建时钟窗口控制器...")
         clockWindowController = ClockWindowController(viewModel: viewModel)
+        
+        print("👁️ 显示时钟窗口...")
         clockWindowController?.showWindow()
     }
     

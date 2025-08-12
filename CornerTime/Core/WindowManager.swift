@@ -72,7 +72,7 @@ class WindowManager: ObservableObject {
     // MARK: - Public Methods
     
     /// 创建时钟窗口
-    func createClockWindow(contentView: NSView) {
+    func createClockWindow(contentView: NSView, behaviorConfig: BehaviorConfig, spaceManager: SpaceManager) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 200, height: 60),
             styleMask: [.borderless],
@@ -87,16 +87,8 @@ class WindowManager: ObservableObject {
         window.acceptsMouseMovedEvents = true
         window.ignoresMouseEvents = windowConfig.allowsClickThrough
         
-        // 窗口层级设置 - 使其在全屏应用上方可见，使用安全的层级值
-        window.level = .statusBar
-        
-        // 空间行为设置 - 支持所有空间和全屏辅助
-        window.collectionBehavior = [
-            .canJoinAllSpaces,
-            .fullScreenAuxiliary,
-            .stationary,
-            .ignoresCycle
-        ]
+        // 动态设置窗口层级和行为
+        updateWindowLevelAndBehavior(window: window, behaviorConfig: behaviorConfig, spaceManager: spaceManager)
         
         // 设置内容视图
         window.contentView = contentView
@@ -106,6 +98,31 @@ class WindowManager: ObservableObject {
         
         if isVisible {
             showWindow()
+        }
+    }
+    
+    /// 更新窗口层级和行为
+    func updateWindowLevelAndBehavior(window: NSWindow, behaviorConfig: BehaviorConfig, spaceManager: SpaceManager) {
+        // 根据当前状态和配置动态设置窗口层级
+        let recommendedLevel = spaceManager.getRecommendedWindowLevel(for: behaviorConfig)
+        window.level = recommendedLevel
+        
+        // 设置集合行为
+        let recommendedBehavior = spaceManager.getRecommendedCollectionBehavior(for: behaviorConfig)
+        window.collectionBehavior = recommendedBehavior
+        
+        print("窗口层级设置为: \(recommendedLevel), 行为: \(recommendedBehavior)")
+    }
+    
+    /// 强制刷新窗口状态（用于应对特殊情况）
+    func refreshWindowState(behaviorConfig: BehaviorConfig, spaceManager: SpaceManager) {
+        guard let window = clockWindow else { return }
+        
+        updateWindowLevelAndBehavior(window: window, behaviorConfig: behaviorConfig, spaceManager: spaceManager)
+        
+        // 确保窗口仍然可见
+        if isVisible {
+            spaceManager.forceWindowToFront(window, with: window.level)
         }
     }
     

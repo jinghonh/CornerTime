@@ -33,12 +33,15 @@ class ClockWindowController: NSObject {
     @MainActor
     func showWindow() {
         guard let window = clockWindow else { return }
+        
+        // 直接显示窗口，不重复创建
         window.orderFrontRegardless()
         
-        // 通知窗口管理器创建窗口
-        if let contentView = hostingView {
-            viewModel.windowManager.createClockWindow(contentView: contentView)
-        }
+        // 确保窗口可见
+        window.makeKeyAndOrderFront(nil)
+        
+        // 打印调试信息
+        print("时钟窗口已显示 - 位置: \(window.frame), 层级: \(window.level.rawValue)")
     }
     
     /// 隐藏窗口
@@ -58,11 +61,18 @@ class ClockWindowController: NSObject {
     
     @MainActor
     private func setupWindow() {
+        print("🏗️ 开始设置时钟窗口...")
+        
         // 创建时钟视图
         let clockView = ClockView(viewModel: viewModel)
         hostingView = NSHostingView(rootView: clockView)
         
-        guard let contentView = hostingView else { return }
+        guard let contentView = hostingView else { 
+            print("❌ 错误：无法创建hosting view")
+            return 
+        }
+        
+        print("✅ SwiftUI视图创建成功")
         
         // 创建窗口
         clockWindow = NSWindow(
@@ -72,7 +82,12 @@ class ClockWindowController: NSObject {
             defer: false
         )
         
-        guard let window = clockWindow else { return }
+        guard let window = clockWindow else { 
+            print("❌ 错误：无法创建NSWindow")
+            return 
+        }
+        
+        print("✅ NSWindow创建成功")
         
         // 窗口基础设置
         window.backgroundColor = NSColor.clear
@@ -81,19 +96,17 @@ class ClockWindowController: NSObject {
         window.acceptsMouseMovedEvents = true
         window.delegate = self
         
-        // 窗口层级设置 - 使其在全屏应用上方可见，使用安全的层级值
-        window.level = .statusBar
-        
-        // 空间行为设置 - 支持所有空间和全屏辅助
-        window.collectionBehavior = [
-            .canJoinAllSpaces,
-            .fullScreenAuxiliary,
-            .stationary,
-            .ignoresCycle
-        ]
+        // 动态设置窗口层级和行为（基于当前配置和状态）
+        let behaviorConfig = viewModel.preferencesManager.behaviorConfig
+        viewModel.windowManager.updateWindowLevelAndBehavior(
+            window: window,
+            behaviorConfig: behaviorConfig,
+            spaceManager: viewModel.spaceManager
+        )
         
         // 设置内容视图
         window.contentView = contentView
+        print("✅ 内容视图设置完成")
         
         // 设置窗口大小自适应内容
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -105,6 +118,8 @@ class ClockWindowController: NSObject {
         
         // 设置初始可见性
         updateWindowVisibility()
+        
+        print("🎉 时钟窗口设置完成！")
     }
     
     @MainActor
@@ -217,6 +232,8 @@ class ClockWindowController: NSObject {
         }
         
         window.setFrameOrigin(position)
+        
+        print("📍 窗口位置更新: \(position), 配置: \(config.position.displayName)")
     }
     
     @MainActor

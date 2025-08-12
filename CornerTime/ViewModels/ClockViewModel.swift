@@ -26,6 +26,7 @@ class ClockViewModel: ObservableObject {
     let displayManager: DisplayManager
     let hotKeyManager: HotKeyManager
     let appLifecycle: AppLifecycle
+    let spaceManager: SpaceManager
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
@@ -39,9 +40,11 @@ class ClockViewModel: ObservableObject {
         self.displayManager = DisplayManager()
         self.hotKeyManager = HotKeyManager()
         self.appLifecycle = AppLifecycle()
+        self.spaceManager = SpaceManager()
         
         setupBindings()
         setupHotKeys()
+        setupSpaceManager()
         setupInitialConfiguration()
     }
     
@@ -170,6 +173,74 @@ class ClockViewModel: ObservableObject {
         
         if behaviorConfig.hideFromDock {
             appLifecycle.hideFromDock()
+        }
+    }
+    
+    private func setupSpaceManager() {
+        // 监听空间变化事件
+        spaceManager.spaceChangeEvents
+            .sink { [weak self] event in
+                self?.handleSpaceChangeEvent(event)
+            }
+            .store(in: &cancellables)
+        
+        // 监听全屏状态变化
+        spaceManager.$isInFullScreen
+            .sink { [weak self] isFullScreen in
+                self?.handleFullScreenStateChange(isFullScreen)
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func handleSpaceChangeEvent(_ event: SpaceChangeEvent) {
+        print("空间变化事件: \(event)")
+        
+        switch event {
+        case .spaceChanged(let from, let to):
+            print("空间切换: \(from ?? -1) -> \(to ?? -1)")
+            // 确保窗口在新空间中仍然可见
+            refreshWindowVisibility()
+            
+        case .activeDisplayChanged:
+            print("活动显示器变化")
+            // 重新计算窗口位置
+            windowManager.updateWindowPosition()
+            
+        case .fullScreenStateChanged(let isFullScreen):
+            print("全屏状态变化: \(isFullScreen)")
+            refreshWindowConfiguration()
+            
+        case .missionControlOpened:
+            print("Mission Control 打开")
+            
+        case .missionControlClosed:
+            print("Mission Control 关闭")
+            refreshWindowVisibility()
+        }
+    }
+    
+    private func handleFullScreenStateChange(_ isFullScreen: Bool) {
+        print("全屏状态更新: \(isFullScreen)")
+        
+        // 根据全屏状态调整窗口行为
+        refreshWindowConfiguration()
+        
+        // 如果进入全屏且配置为在全屏中显示，确保窗口可见
+        if isFullScreen && preferencesManager.behaviorConfig.showInFullScreen {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.refreshWindowVisibility()
+            }
+        }
+    }
+    
+    private func refreshWindowConfiguration() {
+        let behaviorConfig = preferencesManager.behaviorConfig
+        windowManager.refreshWindowState(behaviorConfig: behaviorConfig, spaceManager: spaceManager)
+    }
+    
+    private func refreshWindowVisibility() {
+        if isVisible {
+            windowManager.showWindow()
         }
     }
     
