@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import AppKit
 
 /// 日期格式选项
 enum DateFormatOption: String, Codable, CaseIterable {
@@ -83,11 +84,14 @@ class ClockCore: ObservableObject {
     private var timer: Timer?
     private let dateFormatter = DateFormatter()
     private var cancellables = Set<AnyCancellable>()
+    private var lastUpdateTime: Date?
+    private var isBackgrounded: Bool = false
     
     // MARK: - Initialization
     init() {
         setupDateFormatter()
         startTimer()
+        setupApplicationStateObservers()
         
         // 监听时间格式变化
         $timeFormat
@@ -113,7 +117,20 @@ class ClockCore: ObservableObject {
     
     /// 手动更新时间
     func updateTime() {
-        currentTime = Date()
+        let now = Date()
+        
+        // 性能优化：避免过度频繁的更新
+        if let lastUpdate = lastUpdateTime {
+            let timeSinceLastUpdate = now.timeIntervalSince(lastUpdate)
+            let minimumInterval = timeFormat.showSeconds ? 0.95 : 59.0
+            
+            if timeSinceLastUpdate < minimumInterval && !isBackgrounded {
+                return
+            }
+        }
+        
+        currentTime = now
+        lastUpdateTime = now
         updateFormattedTime()
     }
     
@@ -122,24 +139,36 @@ class ClockCore: ObservableObject {
     private func setupDateFormatter() {
         dateFormatter.locale = Locale.current
         
-        var formatString = ""
+        var formatParts: [String] = []
+        
+        // 根据 DateFormatOption 构建日期部分
+        switch timeFormat.dateFormat {
+        case .none:
+            break
+        case .short:
+            formatParts.append("M/d")
+        case .medium:
+            formatParts.append("M月d日")
+        case .long:
+            formatParts.append("yyyy年M月d日")
+        case .weekday:
+            formatParts.append("EEEE")
+        case .full:
+            formatParts.append("yyyy年M月d日")
+            formatParts.append("EEEE")
+        }
         
         // 时间部分
-        if timeFormat.is24Hour {
-            formatString += timeFormat.showSeconds ? "HH:mm:ss" : "HH:mm"
+        let timeFormatString = if self.timeFormat.is24Hour {
+            self.timeFormat.showSeconds ? "HH:mm:ss" : "HH:mm"
         } else {
-            formatString += timeFormat.showSeconds ? "h:mm:ss a" : "h:mm a"
+            self.timeFormat.showSeconds ? "h:mm:ss a" : "h:mm a"
         }
+        formatParts.append(timeFormatString)
         
-        // 日期部分
-        if timeFormat.showDate {
-            formatString = "yyyy-MM-dd " + formatString
-        }
-        
-        // 星期部分
-        if timeFormat.showWeekday {
-            formatString = "EEE " + formatString
-        }
+        // 使用自定义分隔符连接各部分
+        let separator = self.timeFormat.useLocalizedFormat ? " " : self.timeFormat.customSeparator
+        let formatString = formatParts.joined(separator: separator)
         
         dateFormatter.dateFormat = formatString
     }
@@ -152,7 +181,7 @@ class ClockCore: ObservableObject {
         stopTimer()
         
         // 根据是否显示秒来决定更新频率
-        let interval: TimeInterval = timeFormat.showSeconds ? 1.0 : 60.0
+        let interval: TimeInterval = timeFormat.showSeconds ? AppConstants.Timer.secondsInterval : AppConstants.Timer.minutesInterval
         
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -171,5 +200,34 @@ class ClockCore: ObservableObject {
     
     private func updateFormattedTime() {
         formattedTime = dateFormatter.string(from: currentTime)
+    }
+    
+    /// 设置应用状态观察器
+    private func setupApplicationStateObservers() {
+        NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)
+            .sink { [weak self] _ in
+                self?.isBackgrounded = true
+                self?.pauseTimer()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                self?.isBackgrounded = false
+                self?.resumeTimer()
+                self?.updateTime() // 立即更新以获得最新时间
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// 暂停定时器（后台时节能）
+    private func pauseTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+    
+    /// 恢复定时器
+    private func resumeTimer() {
+        setupTimerFrequency()
     }
 }

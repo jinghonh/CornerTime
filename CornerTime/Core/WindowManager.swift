@@ -48,12 +48,12 @@ struct WindowConfig: Codable {
     
     init(position: WindowPosition = .topRight,
          customPoint: CGPoint? = nil,
-         margin: CGFloat = 20,
+         margin: CGFloat = AppConstants.UI.marginDefault,
          isLocked: Bool = false,
          allowsClickThrough: Bool = false,
          enableDragging: Bool = true,
          enableSnapping: Bool = true,
-         snapDistance: CGFloat = 20,
+         snapDistance: CGFloat = AppConstants.DragAndSnap.snapDistanceDefault,
          rememberPosition: Bool = true,
          respectSafeArea: Bool = true,
          lastSavedPosition: CGPoint? = nil) {

@@ -55,10 +55,10 @@ struct AppearancePanel: View {
             }
         }
         .padding()
-        .frame(width: 350, height: 500)
+        .frame(width: AppConstants.AppearancePanel.width, height: AppConstants.AppearancePanel.height)
         .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .shadow(radius: 10)
+        .cornerRadius(AppConstants.AppearancePanel.cornerRadius)
+        .shadow(radius: AppConstants.AppearancePanel.shadowRadius)
         .onAppear {
             loadCurrentSettings()
         }
@@ -79,13 +79,13 @@ struct AppearancePanel: View {
                         .foregroundColor(.secondary)
                 }
                 
-                Slider(value: $tempFontSize, in: 12...48, step: 2) {
+                Slider(value: $tempFontSize, in: AppConstants.UI.fontSizeMin...AppConstants.UI.fontSizeMax, step: AppConstants.UI.fontSizeStep) {
                     Text("字体大小")
                 } minimumValueLabel: {
-                    Text("12")
+                    Text("\(Int(AppConstants.UI.fontSizeMin))")
                         .font(.caption)
                 } maximumValueLabel: {
-                    Text("48")
+                    Text("\(Int(AppConstants.UI.fontSizeMax))")
                         .font(.caption)
                 } onEditingChanged: { _ in
                     viewModel.updateFontSize(tempFontSize)
@@ -199,13 +199,13 @@ struct AppearancePanel: View {
                         .foregroundColor(.secondary)
                 }
                 
-                Slider(value: $tempOpacity, in: 0.3...1.0, step: 0.1) {
+                Slider(value: $tempOpacity, in: AppConstants.UI.opacityMin...AppConstants.UI.opacityMax, step: AppConstants.UI.opacityStep) {
                     Text("透明度")
                 } minimumValueLabel: {
-                    Text("30%")
+                    Text("\(Int(AppConstants.UI.opacityMin * 100))%")
                         .font(.caption)
                 } maximumValueLabel: {
-                    Text("100%")
+                    Text("\(Int(AppConstants.UI.opacityMax * 100))%")
                         .font(.caption)
                 } onEditingChanged: { _ in
                     viewModel.updateOpacity(tempOpacity)

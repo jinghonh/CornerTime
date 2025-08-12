@@ -30,6 +30,7 @@ class ClockViewModel: ObservableObject {
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
+    private var settingsWindow: NSWindow?
     
     // MARK: - Initialization
     init() {
@@ -96,8 +97,28 @@ class ClockViewModel: ObservableObject {
     
     /// 显示设置窗口
     func showSettings() {
-        // TODO: 实现设置窗口
-        print("显示设置窗口")
+        if let window = settingsWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        let settingsView = SettingsWindow(viewModel: self)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.center()
+        window.title = "CornerTime 设置"
+        window.contentView = NSHostingView(rootView: settingsView)
+        window.isReleasedWhenClosed = false
+        
+        settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     /// 退出应用
@@ -250,19 +271,17 @@ class ClockViewModel: ObservableObject {
     
     /// 更新拖拽设置
     func updateDragSettings(enableDragging: Bool, enableSnapping: Bool, snapDistance: CGFloat) {
+        guard ConfigurationValidator.isValidSnapDistance(snapDistance) else {
+            print("⚠️ 吸附距离无效: \(snapDistance)")
+            return
+        }
+        
         let currentConfig = preferencesManager.windowConfig
-        let newConfig = WindowConfig(
-            position: currentConfig.position,
-            customPoint: currentConfig.customPoint,
-            margin: currentConfig.margin,
-            isLocked: currentConfig.isLocked,
-            allowsClickThrough: currentConfig.allowsClickThrough,
+        let newConfig = ConfigurationHelper.updateWindowConfig(
+            currentConfig,
             enableDragging: enableDragging,
             enableSnapping: enableSnapping,
-            snapDistance: snapDistance,
-            rememberPosition: currentConfig.rememberPosition,
-            respectSafeArea: currentConfig.respectSafeArea,
-            lastSavedPosition: currentConfig.lastSavedPosition
+            snapDistance: snapDistance
         )
         
         preferencesManager.updateWindowConfig(newConfig)
@@ -272,17 +291,9 @@ class ClockViewModel: ObservableObject {
     /// 更新位置记忆设置
     func updatePositionMemory(enabled: Bool) {
         let currentConfig = preferencesManager.windowConfig
-        let newConfig = WindowConfig(
-            position: currentConfig.position,
-            customPoint: currentConfig.customPoint,
-            margin: currentConfig.margin,
-            isLocked: currentConfig.isLocked,
-            allowsClickThrough: currentConfig.allowsClickThrough,
-            enableDragging: currentConfig.enableDragging,
-            enableSnapping: currentConfig.enableSnapping,
-            snapDistance: currentConfig.snapDistance,
+        let newConfig = ConfigurationHelper.updateWindowConfig(
+            currentConfig,
             rememberPosition: enabled,
-            respectSafeArea: currentConfig.respectSafeArea,
             lastSavedPosition: enabled ? currentConfig.lastSavedPosition : nil
         )
         
@@ -293,18 +304,9 @@ class ClockViewModel: ObservableObject {
     /// 更新安全区域设置
     func updateSafeAreaSettings(respectSafeArea: Bool) {
         let currentConfig = preferencesManager.windowConfig
-        let newConfig = WindowConfig(
-            position: currentConfig.position,
-            customPoint: currentConfig.customPoint,
-            margin: currentConfig.margin,
-            isLocked: currentConfig.isLocked,
-            allowsClickThrough: currentConfig.allowsClickThrough,
-            enableDragging: currentConfig.enableDragging,
-            enableSnapping: currentConfig.enableSnapping,
-            snapDistance: currentConfig.snapDistance,
-            rememberPosition: currentConfig.rememberPosition,
-            respectSafeArea: respectSafeArea,
-            lastSavedPosition: currentConfig.lastSavedPosition
+        let newConfig = ConfigurationHelper.updateWindowConfig(
+            currentConfig,
+            respectSafeArea: respectSafeArea
         )
         
         preferencesManager.updateWindowConfig(newConfig)
@@ -319,17 +321,10 @@ class ClockViewModel: ObservableObject {
     /// 重置位置到默认
     func resetToDefaultPosition() {
         let currentConfig = preferencesManager.windowConfig
-        let newConfig = WindowConfig(
+        let newConfig = ConfigurationHelper.updateWindowConfig(
+            currentConfig,
             position: .topRight, // 重置为默认位置
             customPoint: nil,
-            margin: currentConfig.margin,
-            isLocked: currentConfig.isLocked,
-            allowsClickThrough: currentConfig.allowsClickThrough,
-            enableDragging: currentConfig.enableDragging,
-            enableSnapping: currentConfig.enableSnapping,
-            snapDistance: currentConfig.snapDistance,
-            rememberPosition: currentConfig.rememberPosition,
-            respectSafeArea: currentConfig.respectSafeArea,
             lastSavedPosition: nil // 清除保存的位置
         )
         
@@ -394,20 +389,13 @@ class ClockViewModel: ObservableObject {
     
     /// 更新字体大小
     func updateFontSize(_ size: CGFloat) {
+        guard ConfigurationValidator.isValidFontSize(size) else {
+            print("⚠️ 字体大小无效: \(size)")
+            return
+        }
+        
         let currentConfig = preferencesManager.appearanceConfig
-        let newConfig = AppearanceConfig(
-            fontSize: size,
-            fontWeight: currentConfig.fontWeight,
-            fontDesign: currentConfig.fontDesign,
-            opacity: currentConfig.opacity,
-            backgroundColor: currentConfig.backgroundColor,
-            cornerRadius: currentConfig.cornerRadius,
-            useBlurBackground: currentConfig.useBlurBackground,
-            enableShadow: currentConfig.enableShadow,
-            shadowRadius: currentConfig.shadowRadius,
-            textColor: currentConfig.textColor,
-            useSystemColors: currentConfig.useSystemColors
-        )
+        let newConfig = ConfigurationHelper.updateAppearanceConfig(currentConfig, fontSize: size)
         
         preferencesManager.appearanceConfig = newConfig
         print("📝 字体大小更新为: \(size)")
@@ -416,19 +404,7 @@ class ClockViewModel: ObservableObject {
     /// 更新字体粗细
     func updateFontWeight(_ weight: FontWeightOption) {
         let currentConfig = preferencesManager.appearanceConfig
-        let newConfig = AppearanceConfig(
-            fontSize: currentConfig.fontSize,
-            fontWeight: weight,
-            fontDesign: currentConfig.fontDesign,
-            opacity: currentConfig.opacity,
-            backgroundColor: currentConfig.backgroundColor,
-            cornerRadius: currentConfig.cornerRadius,
-            useBlurBackground: currentConfig.useBlurBackground,
-            enableShadow: currentConfig.enableShadow,
-            shadowRadius: currentConfig.shadowRadius,
-            textColor: currentConfig.textColor,
-            useSystemColors: currentConfig.useSystemColors
-        )
+        let newConfig = ConfigurationHelper.updateAppearanceConfig(currentConfig, fontWeight: weight)
         
         preferencesManager.appearanceConfig = newConfig
         print("📝 字体粗细更新为: \(weight.displayName)")
@@ -437,19 +413,7 @@ class ClockViewModel: ObservableObject {
     /// 更新字体设计
     func updateFontDesign(_ design: FontDesignOption) {
         let currentConfig = preferencesManager.appearanceConfig
-        let newConfig = AppearanceConfig(
-            fontSize: currentConfig.fontSize,
-            fontWeight: currentConfig.fontWeight,
-            fontDesign: design,
-            opacity: currentConfig.opacity,
-            backgroundColor: currentConfig.backgroundColor,
-            cornerRadius: currentConfig.cornerRadius,
-            useBlurBackground: currentConfig.useBlurBackground,
-            enableShadow: currentConfig.enableShadow,
-            shadowRadius: currentConfig.shadowRadius,
-            textColor: currentConfig.textColor,
-            useSystemColors: currentConfig.useSystemColors
-        )
+        let newConfig = ConfigurationHelper.updateAppearanceConfig(currentConfig, fontDesign: design)
         
         preferencesManager.appearanceConfig = newConfig
         print("📝 字体设计更新为: \(design.displayName)")
@@ -458,14 +422,9 @@ class ClockViewModel: ObservableObject {
     /// 切换24小时制
     func toggle24HourFormat() {
         let currentFormat = preferencesManager.timeFormat
-        let newFormat = TimeFormat(
-            is24Hour: !currentFormat.is24Hour,
-            showSeconds: currentFormat.showSeconds,
-            showDate: currentFormat.showDate,
-            showWeekday: currentFormat.showWeekday,
-            dateFormat: currentFormat.dateFormat,
-            customSeparator: currentFormat.customSeparator,
-            useLocalizedFormat: currentFormat.useLocalizedFormat
+        let newFormat = ConfigurationHelper.updateTimeFormat(
+            currentFormat,
+            is24Hour: !currentFormat.is24Hour
         )
         
         preferencesManager.timeFormat = newFormat
@@ -475,14 +434,9 @@ class ClockViewModel: ObservableObject {
     /// 切换秒显示
     func toggleSecondsDisplay() {
         let currentFormat = preferencesManager.timeFormat
-        let newFormat = TimeFormat(
-            is24Hour: currentFormat.is24Hour,
-            showSeconds: !currentFormat.showSeconds,
-            showDate: currentFormat.showDate,
-            showWeekday: currentFormat.showWeekday,
-            dateFormat: currentFormat.dateFormat,
-            customSeparator: currentFormat.customSeparator,
-            useLocalizedFormat: currentFormat.useLocalizedFormat
+        let newFormat = ConfigurationHelper.updateTimeFormat(
+            currentFormat,
+            showSeconds: !currentFormat.showSeconds
         )
         
         preferencesManager.timeFormat = newFormat
@@ -492,14 +446,11 @@ class ClockViewModel: ObservableObject {
     /// 更新日期格式
     func updateDateFormat(_ format: DateFormatOption) {
         let currentFormat = preferencesManager.timeFormat
-        let newFormat = TimeFormat(
-            is24Hour: currentFormat.is24Hour,
-            showSeconds: currentFormat.showSeconds,
+        let newFormat = ConfigurationHelper.updateTimeFormat(
+            currentFormat,
             showDate: format != .none,
             showWeekday: format == .weekday || format == .full,
-            dateFormat: format,
-            customSeparator: currentFormat.customSeparator,
-            useLocalizedFormat: currentFormat.useLocalizedFormat
+            dateFormat: format
         )
         
         preferencesManager.timeFormat = newFormat
@@ -508,20 +459,13 @@ class ClockViewModel: ObservableObject {
     
     /// 更新透明度
     func updateOpacity(_ opacity: Double) {
+        guard ConfigurationValidator.isValidOpacity(opacity) else {
+            print("⚠️ 透明度无效: \(opacity)")
+            return
+        }
+        
         let currentConfig = preferencesManager.appearanceConfig
-        let newConfig = AppearanceConfig(
-            fontSize: currentConfig.fontSize,
-            fontWeight: currentConfig.fontWeight,
-            fontDesign: currentConfig.fontDesign,
-            opacity: opacity,
-            backgroundColor: currentConfig.backgroundColor,
-            cornerRadius: currentConfig.cornerRadius,
-            useBlurBackground: currentConfig.useBlurBackground,
-            enableShadow: currentConfig.enableShadow,
-            shadowRadius: currentConfig.shadowRadius,
-            textColor: currentConfig.textColor,
-            useSystemColors: currentConfig.useSystemColors
-        )
+        let newConfig = ConfigurationHelper.updateAppearanceConfig(currentConfig, opacity: opacity)
         
         preferencesManager.appearanceConfig = newConfig
         print("🌫️ 透明度更新为: \(Int(opacity * 100))%")
@@ -550,7 +494,7 @@ class ClockViewModel: ObservableObject {
     
     /// 预设字体大小选项
     func getFontSizePresets() -> [CGFloat] {
-        return [12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48]
+        return AppConstants.UI.fontSizePresets
     }
     
     /// 获取当前外观描述
@@ -576,18 +520,10 @@ class ClockViewModel: ObservableObject {
     
     private func updateWindowConfig() {
         let currentConfig = preferencesManager.windowConfig
-        let newConfig = WindowConfig(
-            position: currentConfig.position,
-            customPoint: currentConfig.customPoint,
-            margin: currentConfig.margin,
+        let newConfig = ConfigurationHelper.updateWindowConfig(
+            currentConfig,
             isLocked: isLocked,
-            allowsClickThrough: allowsClickThrough,
-            enableDragging: currentConfig.enableDragging,
-            enableSnapping: currentConfig.enableSnapping,
-            snapDistance: currentConfig.snapDistance,
-            rememberPosition: currentConfig.rememberPosition,
-            respectSafeArea: currentConfig.respectSafeArea,
-            lastSavedPosition: currentConfig.lastSavedPosition
+            allowsClickThrough: allowsClickThrough
         )
         
         preferencesManager.updateWindowConfig(newConfig)

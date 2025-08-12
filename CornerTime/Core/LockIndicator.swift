@@ -12,6 +12,11 @@ struct LockIndicator: View {
     let isLocked: Bool
     let allowsClickThrough: Bool
     @State private var isVisible = true
+    @State private var hideTask: Task<Void, Never>?
+    
+    // 常量
+    private let autoHideDelay: TimeInterval = 3.0
+    private let animationDuration: TimeInterval = 0.3
     
     var body: some View {
         HStack(spacing: 4) {
@@ -36,33 +41,38 @@ struct LockIndicator: View {
         )
         .cornerRadius(4)
         .opacity(isVisible ? 0.8 : 0)
-        .animation(.easeInOut(duration: 0.3), value: isVisible)
+        .animation(.easeInOut(duration: animationDuration), value: isVisible)
         .onAppear {
-            // 显示指示器3秒后自动隐藏
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
-                    isVisible = false
-                }
-            }
+            scheduleAutoHide()
         }
         .onChange(of: isLocked) { _ in
-            // 状态变化时重新显示
-            withAnimation {
-                isVisible = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
-                    isVisible = false
-                }
-            }
+            handleStateChange()
         }
         .onChange(of: allowsClickThrough) { _ in
-            // 状态变化时重新显示
-            withAnimation {
-                isVisible = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
+            handleStateChange()
+        }
+        .onDisappear {
+            hideTask?.cancel()
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func handleStateChange() {
+        withAnimation(.easeInOut(duration: animationDuration)) {
+            isVisible = true
+        }
+        scheduleAutoHide()
+    }
+    
+    private func scheduleAutoHide() {
+        hideTask?.cancel()
+        hideTask = Task {
+            try? await Task.sleep(for: .seconds(autoHideDelay))
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: animationDuration)) {
                     isVisible = false
                 }
             }

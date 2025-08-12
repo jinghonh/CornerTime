@@ -78,15 +78,15 @@ struct AppearanceConfig: Codable {
     let textColor: String
     let useSystemColors: Bool
     
-    init(fontSize: CGFloat = 24,
+    init(fontSize: CGFloat = AppConstants.UI.fontSizeDefault,
          fontWeight: FontWeightOption = .medium,
          fontDesign: FontDesignOption = .monospaced,
-         opacity: Double = 1.0,
+         opacity: Double = AppConstants.UI.opacityDefault,
          backgroundColor: String = "clear",
-         cornerRadius: CGFloat = 4,
+         cornerRadius: CGFloat = AppConstants.UI.cornerRadiusDefault,
          useBlurBackground: Bool = false,
          enableShadow: Bool = true,
-         shadowRadius: CGFloat = 1,
+         shadowRadius: CGFloat = AppConstants.UI.shadowRadiusDefault,
          textColor: String = "primary",
          useSystemColors: Bool = true) {
         self.fontSize = fontSize
@@ -213,15 +213,6 @@ class PreferencesManager: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private var cancellables = Set<AnyCancellable>()
     
-    // 配置键名
-    private struct Keys {
-        static let timeFormat = "com.cornertime.app.timeFormat"
-        static let windowConfig = "com.cornertime.app.windowConfig"
-        static let appearanceConfig = "com.cornertime.app.appearanceConfig"
-        static let behaviorConfig = "com.cornertime.app.behaviorConfig"
-        static let displayConfig = "com.cornertime.app.displayConfig"
-        static let advancedConfig = "com.cornertime.app.advancedConfig"
-    }
     
     // MARK: - Initialization
     init() {
@@ -259,46 +250,78 @@ class PreferencesManager: ObservableObject {
     
     /// 从文件导入配置
     func importConfiguration(from data: Data) -> Bool {
-        // 此处需要实现配置导入逻辑
-        // 暂时返回 false，后续实现
-        return false
+        do {
+            let decoder = JSONDecoder()
+            let configuration = try decoder.decode(ConfigurationBundle.self, from: data)
+            
+            // 验证配置版本兼容性
+            guard isConfigurationCompatible(configuration) else {
+                print("配置版本不兼容")
+                return false
+            }
+            
+            // 导入配置
+            timeFormat = configuration.timeFormat
+            windowConfig = configuration.windowConfig
+            appearanceConfig = configuration.appearanceConfig
+            behaviorConfig = configuration.behaviorConfig
+            displayConfig = configuration.displayConfig
+            advancedConfig = configuration.advancedConfig
+            
+            // 手动触发保存
+            saveAllConfigurations()
+            
+            print("配置导入成功")
+            return true
+            
+        } catch {
+            print("配置导入失败: \(error.localizedDescription)")
+            return false
+        }
+    }
+    
+    /// 检查配置兼容性
+    private func isConfigurationCompatible(_ configuration: ConfigurationBundle) -> Bool {
+        // 基本的兼容性检查
+        // 可以根据需要添加更多验证逻辑
+        return true
     }
     
     // MARK: - Private Methods
     
     private func loadConfigurations() {
         // 加载时间格式配置
-        if let data = userDefaults.data(forKey: Keys.timeFormat),
+        if let data = userDefaults.data(forKey: ConfigKeys.timeFormat),
            let decoded = try? JSONDecoder().decode(TimeFormat.self, from: data) {
             timeFormat = decoded
         }
         
         // 加载窗口配置
-        if let data = userDefaults.data(forKey: Keys.windowConfig),
+        if let data = userDefaults.data(forKey: ConfigKeys.windowConfig),
            let decoded = try? JSONDecoder().decode(WindowConfig.self, from: data) {
             windowConfig = decoded
         }
         
         // 加载外观配置
-        if let data = userDefaults.data(forKey: Keys.appearanceConfig),
+        if let data = userDefaults.data(forKey: ConfigKeys.appearanceConfig),
            let decoded = try? JSONDecoder().decode(AppearanceConfig.self, from: data) {
             appearanceConfig = decoded
         }
         
         // 加载行为配置
-        if let data = userDefaults.data(forKey: Keys.behaviorConfig),
+        if let data = userDefaults.data(forKey: ConfigKeys.behaviorConfig),
            let decoded = try? JSONDecoder().decode(BehaviorConfig.self, from: data) {
             behaviorConfig = decoded
         }
         
         // 加载显示器配置
-        if let data = userDefaults.data(forKey: Keys.displayConfig),
+        if let data = userDefaults.data(forKey: ConfigKeys.displayConfig),
            let decoded = try? JSONDecoder().decode(DisplayConfig.self, from: data) {
             displayConfig = decoded
         }
         
         // 加载高级配置
-        if let data = userDefaults.data(forKey: Keys.advancedConfig),
+        if let data = userDefaults.data(forKey: ConfigKeys.advancedConfig),
            let decoded = try? JSONDecoder().decode(AdvancedConfig.self, from: data) {
             advancedConfig = decoded
         }
@@ -309,42 +332,42 @@ class PreferencesManager: ObservableObject {
         $timeFormat
             .dropFirst()
             .sink { [weak self] config in
-                self?.saveConfiguration(config, key: Keys.timeFormat)
+                self?.saveConfiguration(config, key: ConfigKeys.timeFormat)
             }
             .store(in: &cancellables)
         
         $windowConfig
             .dropFirst()
             .sink { [weak self] config in
-                self?.saveConfiguration(config, key: Keys.windowConfig)
+                self?.saveConfiguration(config, key: ConfigKeys.windowConfig)
             }
             .store(in: &cancellables)
         
         $appearanceConfig
             .dropFirst()
             .sink { [weak self] config in
-                self?.saveConfiguration(config, key: Keys.appearanceConfig)
+                self?.saveConfiguration(config, key: ConfigKeys.appearanceConfig)
             }
             .store(in: &cancellables)
         
         $behaviorConfig
             .dropFirst()
             .sink { [weak self] config in
-                self?.saveConfiguration(config, key: Keys.behaviorConfig)
+                self?.saveConfiguration(config, key: ConfigKeys.behaviorConfig)
             }
             .store(in: &cancellables)
         
         $displayConfig
             .dropFirst()
             .sink { [weak self] config in
-                self?.saveConfiguration(config, key: Keys.displayConfig)
+                self?.saveConfiguration(config, key: ConfigKeys.displayConfig)
             }
             .store(in: &cancellables)
         
         $advancedConfig
             .dropFirst()
             .sink { [weak self] config in
-                self?.saveConfiguration(config, key: Keys.advancedConfig)
+                self?.saveConfiguration(config, key: ConfigKeys.advancedConfig)
             }
             .store(in: &cancellables)
     }
@@ -356,12 +379,12 @@ class PreferencesManager: ObservableObject {
     }
     
     private func saveAllConfigurations() {
-        saveConfiguration(timeFormat, key: Keys.timeFormat)
-        saveConfiguration(windowConfig, key: Keys.windowConfig)
-        saveConfiguration(appearanceConfig, key: Keys.appearanceConfig)
-        saveConfiguration(behaviorConfig, key: Keys.behaviorConfig)
-        saveConfiguration(displayConfig, key: Keys.displayConfig)
-        saveConfiguration(advancedConfig, key: Keys.advancedConfig)
+        saveConfiguration(timeFormat, key: ConfigKeys.timeFormat)
+        saveConfiguration(windowConfig, key: ConfigKeys.windowConfig)
+        saveConfiguration(appearanceConfig, key: ConfigKeys.appearanceConfig)
+        saveConfiguration(behaviorConfig, key: ConfigKeys.behaviorConfig)
+        saveConfiguration(displayConfig, key: ConfigKeys.displayConfig)
+        saveConfiguration(advancedConfig, key: ConfigKeys.advancedConfig)
     }
     
     /// 更新窗口配置
